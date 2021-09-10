@@ -1,0 +1,6 @@
+.ipynb_checkpoints
+fpn
+logs
+new_fpn
+*.jpeg
+*.pdf

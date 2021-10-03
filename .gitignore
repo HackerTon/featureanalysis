@@ -2,5 +2,7 @@
 fpn
 logs
 new_fpn
+new_orig_fcn
+new_unet
 *.jpeg
 *.pdf

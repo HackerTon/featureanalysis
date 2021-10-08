@@ -1,8 +1,5 @@
 # Analysis of My Feature Map
 
-| Tables | Are | Cool |
-| ------ | :-: | ---: |
-
 | MODEL | BACKBONE       | LR    | ALPHA (IOU) | RESULT (mIOU) | RESULT (loss) |
 | ----- | -------------- | ----- | ----------- | ------------- | ------------- |
 | FPN   | efficientNetB0 | 1e-5  | 0.5         |

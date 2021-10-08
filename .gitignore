@@ -1,8 +1,6 @@
 .ipynb_checkpoints
 fpn
 logs
-new_fpn
-new_orig_fcn
-new_unet
+trained_model
 *.jpeg
 *.pdf

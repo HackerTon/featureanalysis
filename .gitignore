@@ -4,3 +4,4 @@ logs
 trained_model
 *.jpeg
 *.pdf
+*.pyc

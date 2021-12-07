@@ -1,0 +1,24 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Django Tailwind</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    {% tailwind_css %}
+  </head>
+
+  <body>
+    <div class="w-screen h-20 bg-green-100 static rounded-br-lg rounded-bl-lg shadow-sm"></div>
+    <div class="grid place-items-center h-screen">
+      <div class="w-72 h-52 bg-green-100 flex flex-row">
+        <div class="h-52 bg-blue-50">hello</div>
+        <div>
+          <div class="bg-red-50">this is the detail</div>
+          <div class="bg-green-400">this is the detail</div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

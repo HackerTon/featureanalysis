@@ -1,3 +1,21 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.cute-button {
+  @apply block
+  bg-white
+  font-extrabold
+  text-xl
+  px-5
+  py-2
+  rounded-md
+  ring-1 ring-black ring-opacity-5
+  shadow-md
+  hover:bg-gray-100;
+}
+
+select::-ms-expand {
+  display: none;
+  background-color: green;
+}

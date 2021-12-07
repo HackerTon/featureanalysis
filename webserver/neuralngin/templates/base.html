@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Django Tailwind</title>
+    <title>NeuralNGin</title>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="X-UA-Compatible" content="ie=edge" />
@@ -10,15 +10,59 @@
   </head>
 
   <body>
-    <div class="w-screen h-20 bg-green-100 static rounded-br-lg rounded-bl-lg shadow-sm"></div>
-    <div class="grid place-items-center h-screen">
-      <div class="w-72 h-52 bg-green-100 flex flex-row">
-        <div class="h-52 bg-blue-50">hello</div>
-        <div>
-          <div class="bg-red-50">this is the detail</div>
-          <div class="bg-green-400">this is the detail</div>
+    <!-- header -->
+    <div
+      class="
+        w-[97.85vw]
+        md:w-screen
+        h-20
+        bg-green-100
+        static
+        rounded-br-2xl rounded-bl-2xl
+        shadow-md
+        overflow-hidden
+      "
+    >
+      <div class="grid place-items-center h-20">
+        <div class="text-5xl font-bold">NeuralNGin</div>
+      </div>
+    </div>
+    <!-- main grid -->
+    <div class="grid grid-cols-1 pt-10 md:pt-0 lg:grid-cols-2  md:h-[80vh]">
+      <!-- image input -->
+      <div class="grid grid-cols-1 place-items-center">
+        <div class="h-[50vh] w-[50vh] bg-green-300 rounded-lg"></div>
+      </div>
+
+      <!-- right form -->
+      <div class="text-xl self-center">
+        <!-- combo -->
+        <div class="bg-blue-300 rounded-2xl mx-5 my-10 p-5">
+          <p class="text-5xl font-medium inline-block border-b-4 border-white">
+            STEP 1
+            <p class="pt-2">Description about the first instruction</p>
+          </p>
+          <button class="cute-button mt-20">INSERT IMAGE</button>
+        </div>
+
+        <!-- neural network combo -->
+        <div class="bg-red-300 rounded-2xl mx-5 my-10 p-5">
+          <p class="text-5xl font-medium inline-block border-b-4 border-white">
+            STEP 2
+            <p class="pt-2">This is the second</p>
+          </p>
+          <div class="mt-20 mb-3 font-mono">
+            <select class="rounded-2xl">
+              <option id="1">FCN-8s</option>
+              <option id="2">U-Net</option>
+              <option id="3">FPN</option>
+              <option id="4">Ensemble</option>
+            </select>
+          </div>
+          <button class="cute-button">SUBMIT</button>
         </div>
       </div>
     </div>
+    <div class="grid place-items-center w-full h-20 bg-gray-900 md:absolute md:bottom-0 md:left-0"><div class="text-white font-mono inline-block">NeuralNGin was build using <a href="#" class="hover:text-blue-700">Django 😊</a> & <a href="#" class="hover:text-blue-700">Tensorflow  🤓</a></div></div>
   </body>
 </html>

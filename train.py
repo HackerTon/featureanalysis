@@ -1,14 +1,8 @@
 import argparse
 import datetime
-import functools as ft
 import glob
 import os
-from re import findall
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sb
 import segmentation_models as sm
 import tensorflow as tf
 
@@ -17,8 +11,7 @@ sm.framework()
 tf.random.set_seed(1024)
 
 
-def get_seagull_path(istrain=True):
-    directory = "/home/hackerton/Downloads/Airbus + Seagull Dataset/"
+def get_seagull_path(istrain=True, directory=None):
 
     if istrain:
         trainimg = os.path.join(directory, "trainimg", "*.jpg")
@@ -61,20 +54,6 @@ def get_image_decode(image, label):
     return image, label
 
 
-def path_2_test(path):
-    return (
-        "/home/hackerton/Downloads/Airbus + Seagull Dataset/testimg/" + path,
-        "/home/hackerton/Downloads/Airbus + Seagull Dataset/testmask/" + path,
-    )
-
-
-def path_2_train(path):
-    return (
-        "/home/hackerton/Downloads/Airbus + Seagull Dataset/trainimg/" + path,
-        "/home/hackerton/Downloads/Airbus + Seagull Dataset/trainmask/" + path,
-    )
-
-
 def get_mask(image, label):
     labels = []
     labels.append(label[:, :, 0] == 0)
@@ -87,14 +66,32 @@ def get_mask(image, label):
     return image, tf.transpose(labels, [1, 2, 0])
 
 
-def create_ds(batch_size, ratio=0.8):
+def create_ds(batch_size, ratio=0.8, directory=None):
     AUTOTUNE = tf.data.AUTOTUNE
 
-    paths = get_seagull_path()
+    directory = os.path.join(directory)
+    testimg_path = os.path.join(directory, "testimg") + "/"
+    testmask_path = os.path.join(directory, "testmask") + "/"
+    trainimg_path = os.path.join(directory, "trainimg") + "/"
+    trainmask_path = os.path.join(directory, "trainmask") + "/"
+
+    def path_2_test(path):
+        return (
+            testimg_path + path,
+            testmask_path + path,
+        )
+
+    def path_2_train(path):
+        return (
+            trainimg_path + path,
+            trainmask_path + path,
+        )
+
+    paths = get_seagull_path(directory=directory)
     ds1 = tf.data.Dataset.from_tensor_slices(paths)
     ds1 = ds1.map(path_2_train, AUTOTUNE)
 
-    paths = get_seagull_path(False)
+    paths = get_seagull_path(False, directory=directory)
     ds2 = tf.data.Dataset.from_tensor_slices(paths)
     ds2 = ds2.map(path_2_test, AUTOTUNE)
 
@@ -328,7 +325,7 @@ def train(parsed):
     n_epoch = 20
     n_classes = 2
     batch_size = parsed.batchsize
-    trainds, testds = create_ds(batch_size)
+    trainds, testds = create_ds(batch_size, directory=parsed.path)
 
     if parsed.model == "fcn":
         print("Fcn selected!")
@@ -426,4 +423,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True, choices=["fcn", "unet", "fpn"])
     parser.add_argument("--batchsize", default=4, type=int)
+    parser.add_argument(
+        "--path",
+        required=True,
+        type=str,
+        help="path that contain of the dataset",
+    )
     train(parser.parse_args())

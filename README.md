@@ -1,8 +1,32 @@
 # Analysis of My Feature Map
 
-## UAvid Dataset
+## Prerequisite
 
-### Description
+**IMPORTANT !!**
+
+Before you run the training code below, make sure you have install Tensorflow V2 and above and Segmentation_models library. To install, run the command below
+
+```bash
+pip install segmentation-models
+```
+
+## Instruction to train all models
+
+### FCN
+
+1. `python train.py fcn yourpath`, replace yourpath to seagull datasetpath
+
+### UNET
+
+1. `python train.py fcn yourpath`, replace yourpath to seagull datasetpath
+
+### FPN
+
+1. `python train.py fcn yourpath`, replace yourpath to seagull datasetpath
+
+## Experimental results
+
+### UAvid Dataset
 
 Uses dice loss and with pixelwise crossentropy
 
@@ -12,7 +36,7 @@ Uses dice loss and with pixelwise crossentropy
 | UNET  | resnet50       | 1e-4  | 0.5         |
 | FCN   | efficientNetB0 | 2e-05 | 0.5         |
 
-## Seagull Dataset
+### Seagull Dataset
 
 | MODEL         | BACKBONE       | LR   | ALPHA (IOU)    | RESULT (mIOU) | RESULT (loss) |
 | ------------- | -------------- | ---- | -------------- | ------------- | ------------- |
@@ -20,3 +44,7 @@ Uses dice loss and with pixelwise crossentropy
 | FPN (40EPOCH) | efficientNetB0 | 1e-5 | [0.999, 0.001] | 0.817993      | 0.6183606     |
 | UNET          | efficientNetB0 | 1e-6 | [0.999, 0.001] |
 | FCN           | efficientNetB0 | 1e-4 | [0.999, 0.001] |
+
+```
+
+```

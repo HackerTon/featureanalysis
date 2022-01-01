@@ -8,8 +8,6 @@ from django.core.files.uploadedfile import InMemoryUploadedFile
 
 
 class Mainview(View):
-    # app = apps.get_app_config("neuralngin")
-
     def get(self, request, *args, **kwargs):
         print("get")
 
@@ -24,7 +22,13 @@ class Mainview(View):
     def post(self, request, *args, **kwargs):
         print("post")
         form = UploadImageForm(request.POST, request.FILES)
+        app = apps.get_app_config("neuralngin")
 
         if form.is_valid():
             imagefile: InMemoryUploadedFile = request.FILES["image"]
-            print(imagefile.file.read())
+            output = app.predict(imagefile.file.read(), form.cleaned_data["model"])
+            image = "data:image/jpeg;base64," + str(output)[2:-2]
+
+            return render(request, "output.html", {"image": image})
+
+        print(form.errors)

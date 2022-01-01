@@ -2,7 +2,12 @@ from django import forms
 from django.conf import settings
 import os
 
-MODEL_CHOICE = (("1", "FCN-8s"), ("2", "UNet"), ("3", "FPN"), ("4", "Ensemble"))
+MODEL_CHOICE = (
+    ("fcn", "FCN-8s"),
+    ("unet", "UNet"),
+    ("fpn", "FPN"),
+    ("ensem", "Ensemble"),
+)
 
 
 class UploadImageForm(forms.Form):

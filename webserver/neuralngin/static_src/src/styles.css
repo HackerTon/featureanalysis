@@ -12,10 +12,19 @@
   rounded-md
   ring-1 ring-black ring-opacity-5
   shadow-md
-  hover:bg-gray-100;
+  hover:bg-gray-100
+  hover:ring-2 hover:ring-black hover:ring-offset-1
+  w-52 text-center;
 }
 
-select::-ms-expand {
-  display: none;
-  background-color: green;
+.mini-box {
+  @apply rounded-2xl mx-5 my-10 p-5 shadow-md;
+}
+
+.model {
+  @apply rounded-2xl hover:ring-2 hover:ring-black;
+}
+
+.image {
+  @apply invisible hidden;
 }

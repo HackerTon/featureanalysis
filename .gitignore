@@ -5,3 +5,5 @@ trained_model
 *.jpeg
 *.pdf
 *.pyc
+db.sqlite3
+savedmodel

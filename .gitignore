@@ -7,3 +7,5 @@ trained_model
 *.pyc
 db.sqlite3
 savedmodel
+*test
+*train

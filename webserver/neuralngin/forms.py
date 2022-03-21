@@ -2,15 +2,14 @@ from django import forms
 from django.conf import settings
 import os
 
-MODEL_CHOICE = (
-    ("fcn", "FCN-8s"),
-    ("unet", "UNet"),
-    ("fpn", "FPN"),
-    ("ensem", "Ensemble"),
-)
-
 
 class UploadImageForm(forms.Form):
+    MODEL_CHOICE = (
+        ("fcn", "FCN-8s"),
+        ("unet", "UNet"),
+        ("fpn", "FPN"),
+        ("ensem", "Ensemble"),
+    )
     model = forms.ChoiceField(choices=MODEL_CHOICE)
     image = forms.ImageField()
 

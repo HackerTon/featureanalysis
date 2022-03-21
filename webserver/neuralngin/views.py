@@ -32,3 +32,9 @@ class Mainview(View):
             return render(request, "output.html", {"image": image})
 
         print(form.errors)
+
+
+class SecondView(View):
+    def get(self, request):
+        print("get")
+        return render(request, "output.html")

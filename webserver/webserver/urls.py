@@ -16,8 +16,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from neuralngin.views import Mainview
+from neuralngin.views import SecondView
 
 urlpatterns = [
     path("", Mainview.as_view()),
+    path("test2", SecondView.as_view()),
     path("admin/", admin.site.urls),
 ]

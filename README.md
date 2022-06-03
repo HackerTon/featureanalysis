@@ -30,11 +30,11 @@ pip install segmentation-models
 
 Uses dice loss and with pixelwise crossentropy
 
-| MODEL | BACKBONE       | LR    | ALPHA (IOU) | RESULT (mIOU) | RESULT (loss) |
-| ----- | -------------- | ----- | ----------- | ------------- | ------------- |
-| FPN   | efficientNetB0 | 1e-5  | 0.5         |
-| UNET  | resnet50       | 1e-4  | 0.5         |
-| FCN   | efficientNetB0 | 2e-05 | 0.5         |
+| MODEL | BACKBONE       | LR   | Test IoU | Train IoU |
+| ----- | -------------- | ---- | -------- | --------- |
+| FPN   | efficientNetB0 | 1e-5 | 0.519    | 0.615     |
+| UNET  | efficientNetB0 | 1e-5 | OTW      | OTW       |
+| FCN   | efficientNetB0 | 1e-5 | 0.248    | 0.257     |
 
 ### Seagull Dataset
 

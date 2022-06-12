@@ -33,7 +33,7 @@ Uses dice loss and with pixelwise crossentropy
 | MODEL | BACKBONE       | LR   | Test IoU | Train IoU |
 | ----- | -------------- | ---- | -------- | --------- |
 | FPN   | efficientNetB0 | 1e-5 | 0.519    | 0.615     |
-| UNET  | efficientNetB0 | 1e-5 | OTW      | OTW       |
+| UNET  | efficientNetB0 | 1e-5 | 0.444    | 0.534     |
 | FCN   | efficientNetB0 | 1e-5 | 0.248    | 0.257     |
 
 ### Seagull Dataset

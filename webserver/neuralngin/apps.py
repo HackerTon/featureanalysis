@@ -347,9 +347,9 @@ class NeuralnginConfig(AppConfig):
             del model
             return b64encode(image.numpy())
         elif model == "ensem":
-            model = combined_model_unetfpn()
+            model = combined_model_unetfpn(mode="concat")
             ckpt = tf.train.Checkpoint(model=model)
-            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/unetfpn", 5)
+            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/unetfpnconcat", 5)
             ckptmg.restore_or_initialize()
 
             input_img_padded = tf.pad(image, [[0, 0], [8, 8], [0, 0], [0, 0]])

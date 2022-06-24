@@ -272,7 +272,7 @@ class NeuralnginConfig(AppConfig):
         #     os.path.join(settings.BASE_DIR, "savedmodel/seagull_fpn")
         # )
 
-    def predict(self, raw_io, model):
+    def predict(self, raw_io, model, infclass):
         """
         image: in str, decoded
         """
@@ -280,49 +280,86 @@ class NeuralnginConfig(AppConfig):
         image = tf.image.decode_image(raw_io, channels=3)
         image = tf.expand_dims(image, 0)
         image = tf.cast(image, tf.float32)
-        print(image.shape)
-
-        # image = tf.image.resize(image, (512, 512), preserve_aspect_ratio=True)
-        # image = tf.image.encode_jpeg(
-        #     tf.cast(image[0, ..., 0][..., tf.newaxis] * 255, tf.uint8)
-        # )
-
-        # tf.io.write_file("some.jpg", image)
-        # return b64encode(image.numpy())
+        print(image.shape, infclass)
 
         if model == "fpn":
-            # output = self.fcn(image, training=False)
-            # image = tf.image.encode_jpeg(
-            #     tf.cast(output[0, ..., 1][..., tf.newaxis] * 255, tf.uint8)
-            # )
-            # return b64encode(image.numpy())
-            return None
-        elif model == "ensem":
-            model = combined_model_unetfpn()
-            optimizer = keras.optimizers.Adam(1e-5)
-
-            ckpt = tf.train.Checkpoint(model=model, optimizer=optimizer)
-            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/unetfpn", 5)
+            model = FCN(8)
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/fpn", 5)
             ckptmg.restore_or_initialize()
 
             input_img_padded = tf.pad(image, [[0, 0], [8, 8], [0, 0], [0, 0]])
             output = model(input_img_padded, training=False)
-
-            output1 = tf.repeat(output[0, ..., 6][..., tf.newaxis], 3, -1) * [
+            output = tf.math.softmax(output)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
                 30,
                 128,
                 128,
             ]
 
-            # output2 = tf.repeat(output[0, ..., 7][..., tf.newaxis], 3, -1) * [
-            #     30,
-            #     256,
-            #     128,
-            # ]
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "unet":
+            model = sm.Unet(
+                backbone_name="efficientnetb0",
+                encoder_weights="imagenet",
+                encoder_freeze=False,
+                activation="softmax",
+                classes=8,
+                decoder_use_batchnorm=False,
+            )
 
-            # output = output1 + output2
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/unet", 5)
+            ckptmg.restore_or_initialize()
+
+            input_img_padded = tf.pad(image, [[0, 0], [8, 8], [0, 0], [0, 0]])
+            input_img_padded = sm.get_preprocessing("efficientnetb0")(input_img_padded)
+
+            output = model(input_img_padded, training=True)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
 
             image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "fcn":
+            model = FCN_ORIG(8)
 
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/fcn8s", 5)
+            ckptmg.restore_or_initialize()
+
+            input_img_padded = tf.pad(image, [[0, 0], [8, 8], [0, 0], [0, 0]])
+            output = model(input_img_padded, training=False)
+            output = tf.math.softmax(output)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "ensem":
+            model = combined_model_unetfpn()
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/unetfpn", 5)
+            ckptmg.restore_or_initialize()
+
+            input_img_padded = tf.pad(image, [[0, 0], [8, 8], [0, 0], [0, 0]])
+            output = model(input_img_padded, training=False)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
             del model
             return b64encode(image.numpy())

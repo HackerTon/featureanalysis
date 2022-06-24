@@ -15,6 +15,7 @@ class Mainview(View):
         context = {
             "model": form["model"],
             "image": form["image"],
+            "infclass": form["infclass"],
         }
 
         return render(request, "base.html", context)
@@ -26,8 +27,13 @@ class Mainview(View):
 
         if form.is_valid():
             imagefile: InMemoryUploadedFile = request.FILES["image"]
-            output = app.predict(imagefile.file.read(), form.cleaned_data["model"])
-            image = "data:image/jpeg;base64," + str(output)[2:-2]
+            output = app.predict(
+                imagefile.file.read(),
+                form.cleaned_data["model"],
+                form.cleaned_data["infclass"],
+            )
+            print(str(output)[:4], str(output)[-4:])
+            image = r"data:image/jpeg;base64," + str(output)[2:-1]
 
             return render(request, "output.html", {"image": image})
 

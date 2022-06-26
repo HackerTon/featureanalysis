@@ -1,4 +1,6 @@
 .ipynb_checkpoints
+trained_model_seagull
+logs_seagull
 fpn
 logs
 trained_model

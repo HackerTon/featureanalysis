@@ -16,8 +16,8 @@ Uses dice loss and with pixelwise crossentropy
 
 | Dataset | Batch Size | Learning Rate | Training Dataset Size | Testing Dataset Size | Image Size (W x H) |
 | ------- | ---------- | ------------- | --------------------- | -------------------- | ------------------ |
-| UAVid   | 8          | 1e-5          | 18499                 | 4624                 | 256 x 256          |
-| Seagull | 8          | 1e-5          | 6400                  | 2240                 | 448 x 448          |
+| Seagull   | 8          | 1e-5          | 18499                 | 4624                 | 256 x 256          |
+| UAVid | 8          | 1e-5          | 6400                  | 2240                 | 448 x 448          |
 
 ### UAvid Dataset
 

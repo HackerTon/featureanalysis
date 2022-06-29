@@ -16,8 +16,8 @@ Uses dice loss and with pixelwise crossentropy
 
 | Dataset | Batch Size | Learning Rate | Training Dataset Size | Testing Dataset Size | Image Size (W x H) |
 | ------- | ---------- | ------------- | --------------------- | -------------------- | ------------------ |
-| Seagull   | 8          | 1e-5          | 18499                 | 4624                 | 256 x 256          |
-| UAVid | 8          | 1e-5          | 6400                  | 2240                 | 448 x 448          |
+| Seagull | 8          | 1e-5          | 18499                 | 4624                 | 256 x 256          |
+| UAVid   | 8          | 1e-5          | 6400                  | 2240                 | 448 x 448          |
 
 ### UAvid Dataset
 
@@ -35,8 +35,8 @@ Uses dice loss and with pixelwise crossentropy
 
 | MODEL                      | BACKBONE       | Train IoU | Test IoU |
 | -------------------------- | -------------- | --------- | -------- |
-| FPN                        | efficientNetB0 | 0.841     | 0.834    |
-| UNET                       | efficientNetB0 | 0.825     | 0.824    |
+| FPN                        | efficientNetB0 | 0.843     | 0.838    |
+| UNET                       | efficientNetB0 | 0.826     | 0.823    |
 | FCN                        | efficientNetB0 | 0.494     | 0.498    |
 | UNET + FPN (PRODUCT)       | efficientNetB0 | TBA       | TBA      |
 | UNET + FPN (SUM)           | efficientNetB0 | TBA       | TBA      |

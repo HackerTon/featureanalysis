@@ -38,7 +38,7 @@ Uses dice loss and with pixelwise crossentropy
 | FPN                        | efficientNetB0 | 0.843     | 0.838    |
 | UNET                       | efficientNetB0 | 0.826     | 0.823    |
 | FCN                        | efficientNetB0 | 0.494     | 0.498    |
-| UNET + FPN (PRODUCT)       | efficientNetB0 | TBA       | TBA      |
+| UNET + FPN (PRODUCT)       | efficientNetB0 | 0.838     | 0.838    |
 | UNET + FPN (SUM)           | efficientNetB0 | TBA       | TBA      |
-| UNET + FPN (CONCATENATION) | efficientNetB0 | TBA       | TBA      |
+| UNET + FPN (CONCATENATION) | efficientNetB0 | 0.827     | 0.827    |
 | FCN + FPN (CONCATENATION)  | efficientNetB0 | TBA       | TBA      |

@@ -163,28 +163,28 @@ class FCN_ORIG(tf.keras.Model):
             filters=(n_classes), kernel_size=(1, 1), padding="same", activation="relu"
         )
         self.upscale2x_1 = tf.keras.layers.Convolution2DTranspose(
-            filters=8,
+            filters=n_classes,
             kernel_size=(4, 4),
             strides=(2, 2),
             padding="same",
             activation="relu",
         )
         self.upscale2x_2 = tf.keras.layers.Convolution2DTranspose(
-            filters=8,
+            filters=n_classes,
             kernel_size=(4, 4),
             strides=(2, 2),
             padding="same",
             activation="relu",
         )
         self.upscale2x_3 = tf.keras.layers.Convolution2DTranspose(
-            filters=8,
+            filters=n_classes,
             kernel_size=(4, 4),
             strides=(2, 2),
             padding="same",
             activation="relu",
         )
         self.upscale2x_4 = tf.keras.layers.Convolution2DTranspose(
-            filters=8,
+            filters=n_classes,
             kernel_size=(4, 4),
             strides=(4, 4),
             padding="same",
@@ -202,6 +202,53 @@ class FCN_ORIG(tf.keras.Model):
         fcn_4x = self.upscale2x_3(fcn_8x) + conv1_o
         final_output = self.upscale2x_4(fcn_4x)
         return final_output
+
+
+def combined_model_unetfpn_seagull(mode="multiply", n_classes=8):
+    model_unet = sm.Unet(
+        backbone_name="efficientnetb0",
+        encoder_weights="imagenet",
+        encoder_freeze=False,
+        classes=n_classes,
+        decoder_use_batchnorm=False,
+        activation="linear",
+    )
+    model_fpn = FCN(n_classes)
+    conv1x1 = keras.layers.Conv2D(n_classes, 1, padding="same", activation="softmax")
+    input_layer = keras.layers.Input([None, None, 3])
+    rescale_layer = RescalingUnet()
+
+    if mode == "concat":
+        concat = keras.layers.Concatenate()
+
+    output_model_fcn = model_unet(rescale_layer(input_layer))
+    output_model_fpn = model_fpn(input_layer)
+
+    if mode == "multiply":
+        output = output_model_fcn * output_model_fpn
+    elif mode == "sum":
+        output = output_model_fcn + output_model_fpn
+    elif mode == "concat":
+        output = concat([output_model_fcn, output_model_fpn])
+    else:
+        raise AssertionError("mode selected is not in the list")
+    output_final = conv1x1(output)
+    return keras.Model([input_layer], [output_final])
+
+
+def combined_model_fcnfpn_seagull(mode="multi", n_classes=8):
+    model_fcn = FCN_ORIG(n_classes)
+    model_fpn = FCN(n_classes)
+
+    conv1x1 = keras.layers.Conv2D(n_classes, 1, padding="same", activation="softmax")
+
+    input_layer = keras.layers.Input([None, None, 3])
+    output_model_fcn = model_fcn(input_layer)
+    output_model_fpn = model_fpn(input_layer)
+    output = output_model_fcn * output_model_fpn
+    output_final = conv1x1(output)
+
+    return keras.Model([input_layer], [output_final])
 
 
 class RescalingUnet(keras.layers.Layer):
@@ -280,9 +327,8 @@ class NeuralnginConfig(AppConfig):
         image = tf.image.decode_image(raw_io, channels=3)
         image = tf.expand_dims(image, 0)
         image = tf.cast(image, tf.float32)
-        print(image.shape, infclass)
 
-        if model == "fpn":
+        if model == "fpnuavid":
             model = FCN(8)
             ckpt = tf.train.Checkpoint(model=model)
             ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/fpn", 5)
@@ -300,7 +346,7 @@ class NeuralnginConfig(AppConfig):
             image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
             del model
             return b64encode(image.numpy())
-        elif model == "unet":
+        elif model == "unetuavid":
             model = sm.Unet(
                 backbone_name="efficientnetb0",
                 encoder_weights="imagenet",
@@ -327,7 +373,7 @@ class NeuralnginConfig(AppConfig):
             image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
             del model
             return b64encode(image.numpy())
-        elif model == "fcn":
+        elif model == "fcnuavid":
             model = FCN_ORIG(8)
 
             ckpt = tf.train.Checkpoint(model=model)
@@ -346,7 +392,7 @@ class NeuralnginConfig(AppConfig):
             image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
             del model
             return b64encode(image.numpy())
-        elif model == "ensem":
+        elif model == "ufpnconcatuavid":
             model = combined_model_unetfpn(mode="concat")
             ckpt = tf.train.Checkpoint(model=model)
             ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/unetfpnconcat", 5)
@@ -354,6 +400,190 @@ class NeuralnginConfig(AppConfig):
 
             input_img_padded = tf.pad(image, [[0, 0], [8, 8], [0, 0], [0, 0]])
             output = model(input_img_padded, training=False)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "ufpnproduavid":
+            model = combined_model_unetfpn(mode="multiply")
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/unetfpn", 5)
+            ckptmg.restore_or_initialize()
+
+            input_img_padded = tf.pad(image, [[0, 0], [8, 8], [0, 0], [0, 0]])
+            output = model(input_img_padded, training=False)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "ufpnsumuavid":
+            model = combined_model_unetfpn(mode="sum")
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/unetfpnsum", 5)
+            ckptmg.restore_or_initialize()
+
+            input_img_padded = tf.pad(image, [[0, 0], [8, 8], [0, 0], [0, 0]])
+            output = model(input_img_padded, training=False)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "ffpnproduavid":
+            model = combined_model_fcnfpn()
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model/fcnfpn", 5)
+            ckptmg.restore_or_initialize()
+
+            input_img_padded = tf.pad(image, [[0, 0], [8, 8], [0, 0], [0, 0]])
+            output = model(input_img_padded, training=False)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        if model == "fpnseagull":
+            model = FCN(2)
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model_seagull/fpn", 5)
+            ckptmg.restore_or_initialize()
+
+            output = model(image, training=False)
+            output = tf.math.softmax(output)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "unetseagull":
+            model = sm.Unet(
+                backbone_name="efficientnetb0",
+                encoder_weights="imagenet",
+                encoder_freeze=False,
+                activation="softmax",
+                classes=2,
+                decoder_use_batchnorm=False,
+            )
+
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model_seagull/unet", 5)
+            ckptmg.restore_or_initialize()
+
+            image = sm.get_preprocessing("efficientnetb0")(image)
+
+            output = model(image, training=True)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "fcnseagull":
+            model = FCN_ORIG(2)
+
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model_seagull/fcn8s", 5)
+            ckptmg.restore_or_initialize()
+
+            output = model(image, training=False)
+            output = tf.math.softmax(output)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "ufpnconcatseagull":
+            model = combined_model_unetfpn_seagull(mode="concat", n_classes=2)
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(
+                ckpt, f"trained_model_seagull/unetfpnconcat", 5
+            )
+            ckptmg.restore_or_initialize()
+
+            output = model(image, training=False)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "ufpnprodseagull":
+            model = combined_model_unetfpn_seagull(mode="multiply", n_classes=2)
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(
+                ckpt, f"trained_model_seagull/unetfpn", 5
+            )
+            ckptmg.restore_or_initialize()
+
+            output = model(image, training=False)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "ufpnsumseagull":
+            model = combined_model_unetfpn_seagull(mode="sum", n_classes=2)
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(
+                ckpt, f"trained_model_seagull/unetfpnsum", 5
+            )
+            ckptmg.restore_or_initialize()
+
+            output = model(image, training=False)
+            output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
+                30,
+                128,
+                128,
+            ]
+
+            image = tf.image.encode_jpeg(tf.cast(output1, tf.uint8))
+            del model
+            return b64encode(image.numpy())
+        elif model == "ffpnprodseagull":
+            model = combined_model_fcnfpn_seagull(n_classes=2)
+            ckpt = tf.train.Checkpoint(model=model)
+            ckptmg = tf.train.CheckpointManager(
+                ckpt, f"trained_model_seagull/fcnfpn", 5
+            )
+            ckptmg.restore_or_initialize()
+
+            output = model(image, training=False)
             output1 = tf.repeat(output[0, ..., infclass][..., tf.newaxis], 3, -1) * [
                 30,
                 128,

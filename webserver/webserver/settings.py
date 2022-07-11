@@ -25,7 +25,7 @@ SECRET_KEY = "django-insecure-$6u!6+zpg7wggxh@-=bjov*2l9y(vrjwwzx#b!(zata^1rf+rq
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["192.168.2.164", "127.0.0.1"]
 
 TAILWIND_APP_NAME = "neuralngin"
 INTERNAL_IPS = ["127.0.0.1"]
@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "tailwind",
     "neuralngin",
+    "django_browser_reload",
 ]
 
 MIDDLEWARE = [
@@ -52,6 +53,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_browser_reload.middleware.BrowserReloadMiddleware",
 ]
 
 ROOT_URLCONF = "webserver.urls"

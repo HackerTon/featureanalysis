@@ -9,53 +9,48 @@
     {% tailwind_css %}
   </head>
 
-  <body>
+  <body class="overflow-x-hidden">
     {% include "header.html" %}
     <!-- main grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 pt-10 lg:pt-0 mt-10">
       <!-- image input -->
       <div class="grid grid-cols-1 place-items-center">
-        <div
-          id="box"
-          class="
-            h-[50vh]
-            w-[50vh]
-            md:h-[70vh] md:w-[70vh]
-            bg-green-300
-            rounded-lg
-          "
-        >
-          {% load static %}
-          <img
-            id="thisimg"
-            class="object-contain h-full w-full p-5"
-            src="{{ image }}"
-            alt="image"
-          />
+        <div>
+          <div
+            class="h-[50vh] w-[50vh] md:h-[70vh] md:w-[70vh] bg-green-300 rounded-lg p-5"
+          >
+            <img
+              id="thisimg"
+              class="object-contain h-full w-full rounded-lg"
+              src="{{ inputimage }}"
+              alt="image"
+            />
+          </div>
         </div>
+        <h1 class="font-bold text-4xl pt-5">Input Image</h1>
       </div>
 
-      <div class="grid grid-cols-3 place-items-center">
-        <div id="box" class="w-52 h-52 bg-yellow-300 rounded-lg"></div>
-        <div id="box" class="w-52 h-52 bg-yellow-300 rounded-lg"></div>
-        <div id="box" class="w-52 h-52 bg-yellow-300 rounded-lg"></div>
-        <div id="box" class="w-52 h-52 bg-yellow-300 rounded-lg"></div>
-        <div id="box" class="w-52 h-52 bg-yellow-300 rounded-lg"></div>
-        <div id="box" class="w-52 h-52 bg-yellow-300 rounded-lg"></div>
+      <!-- output input -->
+      <div class="grid grid-cols-1 place-items-center">
+        <div>
+          <div
+            class="h-[50vh] w-[50vh] md:h-[70vh] md:w-[70vh] bg-yellow-300 rounded-lg p-5"
+          >
+            <img
+              id="thisimg"
+              class="object-contain h-full w-full rounded-lg"
+              src="{{ outputimage }}"
+              alt="image"
+            />
+          </div>
+        </div>
+        <h1 class="font-bold text-4xl pt-5">Output Prediction {{ type }}</h1>
       </div>
     </div>
+
+    <!-- footer -->
     <div
-      class="
-        grid
-        place-items-center
-        w-full
-        h-20
-        bg-gray-900
-        md:mt-10 md:relative
-        absolute
-        left-0
-        bottom-0
-      "
+      class="grid place-items-center w-screen h-20 bg-gray-900 md:mt-10 md:relative absolute left-0 bottom-0"
     >
       <div class="text-white font-mono block">
         NeuralNGin was made using

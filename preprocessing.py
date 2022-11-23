@@ -1,19 +1,12 @@
-import functools as ft
 import glob
 import os
 
-import matplotlib.pyplot as plt
-import numpy as np
-import pandas as pd
-import seaborn as sb
-import segmentation_models as sm
 import tensorflow as tf
-import tensorflow.keras as keras
 
 
 class SeagullDataset:
     @staticmethod
-    def get_path(is_train=True, path_dir="C:\Alans\seagull"):
+    def get_path(path_dir, is_train=True):
         if is_train:
             trainimg = os.path.join(path_dir, "trainimg", "*.jpg")
             images = glob.glob(trainimg, recursive=True)
@@ -81,12 +74,12 @@ class SeagullDataset:
         return image, tf.transpose(labels, [1, 2, 0])
 
     @staticmethod
-    def create_ds(batch_size, ratio=0.8):
-        paths = SeagullDataset.get_path()
+    def create_ds(batch_size, path_dir="C:\Alans\seagull", ratio=0.8):
+        paths = SeagullDataset.get_path(path_dir=path_dir)
         ds_train: tf.data.Dataset = tf.data.Dataset.from_tensor_slices(paths)
         ds_train = ds_train.map(SeagullDataset.path_train, tf.data.AUTOTUNE)
 
-        paths = SeagullDataset.get_path(is_train=False)
+        paths = SeagullDataset.get_path(is_train=False, path_dir=path_dir)
         ds_test: tf.data.Dataset = tf.data.Dataset.from_tensor_slices(paths)
         ds_test = ds_test.map(SeagullDataset.path_test, tf.data.AUTOTUNE)
 
@@ -174,20 +167,24 @@ class UavidDataset:
         return image, tf.transpose(labels, [1, 2, 0])
 
     @staticmethod
-    def create_ds(batch_size, maximage=False):
-        directory = "/home/hackerton/Downloads/uavid_v1.5_official_release/uavid_train/**/Images/*.png"
+    def create_ds(
+        batch_size,
+        path_dir="/home/hackerton/Downloads/uavid_v1.5_official_release_image/",
+        maximage=False,
+    ):
+        directory = os.path.join(path_dir, "uavid_train/**/Images/*.png")
         images = glob.glob(directory, recursive=True)
-        directory = "/home/hackerton/Downloads/uavid_v1.5_official_release/uavid_train/**/Labels/*.png"
+        directory = os.path.join(path_dir, "uavid_train/**/Labels/*.png")
         labels = glob.glob(directory, recursive=True)
         ds_train = tf.data.Dataset.from_tensor_slices((images, labels))
+        ds_train = ds_train.shuffle(len(images))
 
-        directory = "/home/hackerton/Downloads/uavid_v1.5_official_release/uavid_val/**/Images/*.png"
+        directory = os.path.join(path_dir, "uavid_val/**/Images/*.png")
         images = glob.glob(directory, recursive=True)
-        directory = "/home/hackerton/Downloads/uavid_v1.5_official_release/uavid_val/**/Labels/*.png"
+        directory = os.path.join(path_dir, "uavid_val/**/Labels/*.png")
         labels = glob.glob(directory, recursive=True)
         ds_test = tf.data.Dataset.from_tensor_slices((images, labels))
 
-        ds_train = ds_train.shuffle(6400)
         ds_train = ds_train.map(UavidDataset.get_image_decode, tf.data.AUTOTUNE)
         ds_test = ds_test.map(UavidDataset.get_image_decode, tf.data.AUTOTUNE)
 
@@ -204,3 +201,18 @@ class UavidDataset:
         ds_test = ds_test.prefetch(tf.data.AUTOTUNE)
 
         return ds_train, ds_test
+
+
+# Testing the performance of UAVID pipeline
+# dataset_train, dataset_test = UavidDataset.create_ds(batch_size=8)
+
+# count = 0
+# initial_time = time.time()
+
+# for x, y in dataset_train:
+#     count += 1
+
+# final_time = time.time() - initial_time
+
+
+# print(f"{final_time}")

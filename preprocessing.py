@@ -1,5 +1,6 @@
 import glob
 import os
+from pathlib import Path
 
 import tensorflow as tf
 
@@ -108,6 +109,10 @@ class SeagullDataset:
 
 class UavidDataset:
     @staticmethod
+    def labels():
+        return ["bg", "blding", "road", "tree", "vege", "movcar", "satcar", "human"]
+
+    @staticmethod
     def get_image_decode(image, label):
         image = tf.io.read_file(image, "image")
         label = tf.io.read_file(label, "label")
@@ -171,18 +176,26 @@ class UavidDataset:
         batch_size,
         path_dir="/home/hackerton/Downloads/uavid_v1.5_official_release_image/",
         maximage=False,
+        seed=1024,
     ):
-        directory = os.path.join(path_dir, "uavid_train/**/Images/*.png")
-        images = glob.glob(directory, recursive=True)
-        directory = os.path.join(path_dir, "uavid_train/**/Labels/*.png")
-        labels = glob.glob(directory, recursive=True)
-        ds_train = tf.data.Dataset.from_tensor_slices((images, labels))
-        ds_train = ds_train.shuffle(len(images))
 
-        directory = os.path.join(path_dir, "uavid_val/**/Images/*.png")
-        images = glob.glob(directory, recursive=True)
-        directory = os.path.join(path_dir, "uavid_val/**/Labels/*.png")
-        labels = glob.glob(directory, recursive=True)
+        directory = Path(path_dir)
+        images = [
+            str(x.absolute()) for x in directory.glob("uavid_train/**/Images/*.png")
+        ]
+        labels = [
+            str(x.absolute()) for x in directory.glob("uavid_train/**/Labels/*.png")
+        ]
+        print(len(images))
+        ds_train = tf.data.Dataset.from_tensor_slices((images, labels))
+        ds_train = ds_train.shuffle(len(images), seed=seed)
+
+        images = [
+            str(x.absolute()) for x in directory.glob("uavid_val/**/Images/*.png")
+        ]
+        labels = [
+            str(x.absolute()) for x in directory.glob("uavid_val/**/Labels/*.png")
+        ]
         ds_test = tf.data.Dataset.from_tensor_slices((images, labels))
 
         ds_train = ds_train.map(UavidDataset.get_image_decode, tf.data.AUTOTUNE)
@@ -201,18 +214,3 @@ class UavidDataset:
         ds_test = ds_test.prefetch(tf.data.AUTOTUNE)
 
         return ds_train, ds_test
-
-
-# Testing the performance of UAVID pipeline
-# dataset_train, dataset_test = UavidDataset.create_ds(batch_size=8)
-
-# count = 0
-# initial_time = time.time()
-
-# for x, y in dataset_train:
-#     count += 1
-
-# final_time = time.time() - initial_time
-
-
-# print(f"{final_time}")

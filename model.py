@@ -23,7 +23,7 @@ def create_backbone_efficient():
 
 
 class SingleModel:
-    class FPN(tf.keras.layers.Layer):
+    class FPN(keras.Model):
         def __init__(self, n_class=8, *args, **kwargs):
             super().__init__(name="Feature_Pyramid_Network", *args, **kwargs)
             self.backbone = create_backbone_efficient()
@@ -100,18 +100,28 @@ class SingleModel:
             self.upscale8x = keras.layers.UpSampling2D((8, 8))
             self.concatenate = tf.keras.layers.Concatenate()
             self.conv6 = tf.keras.layers.Conv2D(
-                filters=(512), kernel_size=(3, 3), padding="same", activation="relu"
+                filters=(512),
+                kernel_size=(3, 3),
+                padding="same",
+                activation="relu",
             )
             self.conv7 = tf.keras.layers.Conv2D(
-                filters=n_class, kernel_size=(1, 1), padding="same", activation="relu"
+                filters=n_class,
+                kernel_size=(1, 1),
+                padding="same",
+                activation="relu",
             )
             self.upscalefinal = tf.keras.layers.UpSampling2D(
-                size=(4, 4), interpolation="bilinear"
+                size=(4, 4),
+                interpolation="bilinear",
             )
 
         def call(self, images, training=False):
             # 112x112, 56x56, 28x28, 14x14
-            conv2, conv3, conv4, conv5 = self.backbone(images, training=training)
+            # Training argument for backbone passed must be set to False.
+            # This is because we do not want to update the batch normalization
+            # Layer of EfficientNetB0
+            conv2, conv3, conv4, conv5 = self.backbone(images, training=False)
             conv5_m = self.conv5_1x1(conv5)
             conv5_p = self.conv5_3x3_1(conv5_m)
             conv5_p = self.conv5_3x3_2(conv5_p)

@@ -138,15 +138,21 @@ def mainSingle():
     dice_loss = sm.losses.DiceLoss()
 
     ckpt = tf.train.Checkpoint(model=model, optimizer=optimizer)
-    ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model_test/{model_name}", 5)
-    ckptmg.restore_or_initialize()
+    ckptmg = tf.train.CheckpointManager(
+        ckpt,
+        f"trained_model/{model_name}",
+        max_to_keep=None,
+    )
+    if ckptmg.latest_checkpoint is not None:
+        ckpt.restore(ckptmg.latest_checkpoint).expect_partial()
+        print("Checkpoint loaded!")
 
     current_time = datetime.datetime.now().strftime(r"%Y%m%d-%H%M%S")
 
     train_log_dir = f"log_test/{model_name}/{current_time}/train"
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
-    # test_log_dir = f"log_test/{model_name}/{current_time}/test"
-    # test_summary_writer = tf.summary.create_file_writer(test_log_dir)
+    test_log_dir = f"log_test/{model_name}/{current_time}/test"
+    test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
     # Real training
     train_iteration = 0
@@ -187,23 +193,21 @@ def mainSingle():
                     step=train_iteration,
                 )
 
-        # for bs_images, bs_labels in testds:
-        #     output = model(bs_images, training=False)
-        #     sum_loss += (
-        #         dice_loss(bs_labels, output) + ALPHA * focal_loss(bs_labels, output)
-        #     ) * batch_size
-        #     sum_iou += sm.metrics.iou_score(bs_labels, output) * batch_size
-        #     iteration += batch_size
-
-        # # calculate validation loss and IoU
-        # # this is test
-        # with test_summary_writer.as_default():
-        #     tf.summary.scalar("loss", sum_loss / iteration, step=train_iteration)
-        #     tf.summary.scalar("iou", sum_iou / iteration, step=train_iteration)
-
+        # Calculate IoU score and loss for testing dataset
         iteration = 0
-        sum_iou = 0
-        sum_loss = 0
+        testing_loss = 0
+        iou_score = 0
+        for bs_images, bs_labels in testds:
+            output = model(bs_images, training=False)
+            output = tf.nn.softmax(output)
+            testing_loss += dice_loss(bs_labels, output)
+            testing_loss += ALPHA * focal_loss(bs_labels, output) * batch_size
+            iou_score += sm.metrics.iou_score(bs_labels, output) * batch_size
+            iteration += batch_size
+
+        with test_summary_writer.as_default():
+            tf.summary.scalar("loss", testing_loss / iteration, step=train_iteration)
+            tf.summary.scalar("iou", iou_score / iteration, step=train_iteration)
         ckptmg.save()
 
 

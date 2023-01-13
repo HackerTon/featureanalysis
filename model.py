@@ -117,6 +117,7 @@ class SingleModel:
             )
 
         def call(self, images, training=False):
+            # Input is 448x448
             # 112x112, 56x56, 28x28, 14x14
             # Training argument for backbone passed must be set to False.
             # This is because we do not want to update the batch normalization
@@ -144,7 +145,6 @@ class SingleModel:
             conv2_p = self.conv2_3x3_1(conv2_m)
             conv2_p = self.conv2_3x3_2(conv2_p)
 
-            # Middle part is below
             m_5 = self.upscale8x(conv5_p)
             m_4 = self.upscale4x(conv4_p)
             m_3 = self.upscale2x(conv3_p)

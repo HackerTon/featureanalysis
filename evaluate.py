@@ -7,6 +7,7 @@ import tensorflow.keras as keras
 
 from model import RescalingUnet, SingleModel
 from preprocessing import UavidDataset
+from metrics import jindex_class
 
 # Set global seed for reproducibility
 tf.random.set_seed(1024)
@@ -43,32 +44,50 @@ def combined_model(mode="multi", n_class=8):
 
 def mainSingle():
     n_class = 8
-    batch_size = 1
+    batch_size = 8
     trainds, testds = UavidDataset.create_ds(batch_size=batch_size)
     model = SingleModel.FPN(n_class=n_class)
     model_name = model.name
 
+    # Load latest checkpoint
     ckpt = tf.train.Checkpoint(model=model)
-    ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model_test/{model_name}", 5)
-    ckptmg.restore_or_initialize()
+    ckptmg = tf.train.CheckpointManager(
+        ckpt,
+        f"trained_model/{model_name}",
+        max_to_keep=None,
+    )
+    if ckptmg.latest_checkpoint is not None:
+        ckpt.restore(ckptmg.latest_checkpoint).expect_partial()
+        print("Checkpoint loaded!")
 
-    avg_iou = 0
+    # Evaluating on train dataset
+    class_avg_iou = 0
     iteration = 0
+    initial_time = time.time()
     for bs_images, bs_labels in trainds:
         output = model(bs_images, training=False)
         output = tf.nn.softmax(output)
-        avg_iou += sm.metrics.iou_score(bs_labels, output)
+        class_avg_iou += jindex_class(bs_labels, output)
         iteration += 1
+    time_taken_second = time.time() - initial_time
+    print(f"Mean training IoU : {tf.reduce_mean(class_avg_iou / iteration)}")
+    print(f"Class training IoU : {class_avg_iou / iteration}")
+    print(f"Time taken : {time_taken_second}s")
+    print()
 
-    print(f"Training IoU : {avg_iou / iteration}")
-    avg_iou = 0
+    # Evaluating on test dataset
+    class_avg_iou = 0
     iteration = 0
-
+    initial_time = time.time()
     for bs_images, bs_labels in testds:
         output = model(bs_images, training=False)
         output = tf.nn.softmax(output)
-        avg_iou += sm.metrics.iou_score(bs_labels, output)
+        class_avg_iou += jindex_class(bs_labels, output)
         iteration += 1
+    time_taken_second = time.time() - initial_time
+    print(f"Mean testing IoU : {tf.reduce_mean(class_avg_iou / iteration)}")
+    print(f"Class testing IoU : {class_avg_iou / iteration}")
+    print(f"Time taken : {time_taken_second}s")
 
 
 if __name__ == "__main__":

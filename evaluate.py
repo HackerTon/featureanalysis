@@ -1,21 +1,15 @@
 import datetime
 import time
 
-# import segmentation_models as sm
 import tensorflow as tf
-
-# import tensorflow.keras as keras
 from tensorflow import keras
 
+from metrics import jindex_class
 from model import RescalingUnet, SingleModel
 from preprocessing import UavidDataset
-from metrics import jindex_class
 
 # Set global seed for reproducibility
 tf.random.set_seed(1024)
-
-# Set segmentation_models to use TF framework
-# sm.set_framework("tf.keras")
 
 
 def combined_model(mode="multi", n_class=8):

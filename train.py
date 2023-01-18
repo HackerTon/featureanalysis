@@ -1,20 +1,14 @@
 import datetime
 
-# import segmentation_models as sm
 import tensorflow as tf
 from tensorflow import keras
 
-from metrics import jindex_class
+from metrics import dice_coef, dice_loss, jindex_class
 from model import RescalingUnet, SingleModel
 from preprocessing import UavidDataset
-from metrics import jindex_class, dice_loss, dice_coef
 
 # Set global seed for reproducibility
 tf.random.set_seed(1024)
-
-# Set segmentation_models to use TF framework
-# sm.set_framework("tf.keras")
-
 
 def combined_model(mode="multi", n_class=8):
     model_unet = sm.Unet(

@@ -2,7 +2,6 @@ import tensorflow as tf
 
 
 def create_backbone_efficient():
-    # keras.keras.
     _backbone = tf.keras.applications.EfficientNetB0(include_top=False)
     outputs = [
         layer.output

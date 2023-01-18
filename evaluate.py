@@ -44,9 +44,21 @@ def combined_model(mode="multi", n_class=8):
     return keras.Model([input_layer], [output_final], name="FPN_UNET_MEAN")
 
 
+@tf.function
+def evaluate(model, dataset):
+    class_avg_iou = 0.0
+    iteration = 0.0
+    for bs_images, bs_labels in dataset:
+        output = model(bs_images, training=False)
+        output = tf.nn.softmax(output)
+        class_avg_iou += jindex_class(bs_labels, output)
+        iteration += 1
+    return class_avg_iou, iteration
+
+
 def mainSingle():
     n_class = 8
-    batch_size = 4
+    batch_size = 8
     trainds, testds = UavidDataset.create_ds(batch_size=batch_size)
     model = SingleModel.FPN(n_class=n_class)
     model_name = model.name
@@ -64,14 +76,8 @@ def mainSingle():
         print("Checkpoint loaded!")
 
     # Evaluating on train dataset
-    class_avg_iou = 0
-    iteration = 0
     initial_time = time.time()
-    for bs_images, bs_labels in trainds:
-        output = model(bs_images, training=False)
-        output = tf.nn.softmax(output)
-        class_avg_iou += jindex_class(bs_labels, output)
-        iteration += 1
+    class_avg_iou, iteration = evaluate(model, trainds)
     time_taken_second = time.time() - initial_time
     print(f"Mean training IoU : {tf.reduce_mean(class_avg_iou / iteration)}")
     print(f"Class training IoU : {class_avg_iou / iteration}")
@@ -79,14 +85,8 @@ def mainSingle():
     print()
 
     # Evaluating on test dataset
-    class_avg_iou = 0
-    iteration = 0
     initial_time = time.time()
-    for bs_images, bs_labels in testds:
-        output = model(bs_images, training=False)
-        output = tf.nn.softmax(output)
-        class_avg_iou += jindex_class(bs_labels, output)
-        iteration += 1
+    class_avg_iou, iteration = evaluate(model, testds)
     time_taken_second = time.time() - initial_time
     print(f"Mean testing IoU : {tf.reduce_mean(class_avg_iou / iteration)}")
     print(f"Class testing IoU : {class_avg_iou / iteration}")
@@ -94,5 +94,4 @@ def mainSingle():
 
 
 if __name__ == "__main__":
-    # mainCombined()
     mainSingle()

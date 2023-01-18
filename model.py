@@ -1,9 +1,9 @@
 import tensorflow as tf
-import tensorflow.keras as keras
 
 
 def create_backbone_efficient():
-    _backbone = keras.applications.EfficientNetB0(include_top=False)
+    # keras.keras.
+    _backbone = tf.keras.applications.EfficientNetB0(include_top=False)
     outputs = [
         layer.output
         for layer in _backbone.layers
@@ -23,7 +23,7 @@ def create_backbone_efficient():
 
 
 class SingleModel:
-    class FPN(keras.Model):
+    class FPN(tf.keras.Model):
         def __init__(self, n_class=8, *args, **kwargs):
             super().__init__(name="Feature_Pyramid_Network", *args, **kwargs)
             self.backbone = create_backbone_efficient()
@@ -95,9 +95,9 @@ class SingleModel:
                 padding="same",
                 activation="relu",
             )
-            self.upscale2x = keras.layers.UpSampling2D()
-            self.upscale4x = keras.layers.UpSampling2D((4, 4))
-            self.upscale8x = keras.layers.UpSampling2D((8, 8))
+            self.upscale2x = tf.keras.layers.UpSampling2D()
+            self.upscale4x = tf.keras.layers.UpSampling2D((4, 4))
+            self.upscale8x = tf.keras.layers.UpSampling2D((8, 8))
             self.concatenate = tf.keras.layers.Concatenate()
             self.conv6 = tf.keras.layers.Conv2D(
                 filters=(512),
@@ -115,6 +115,14 @@ class SingleModel:
                 size=(4, 4),
                 interpolation="bilinear",
             )
+
+        def freeze_backbone(self):
+            for layer in self.backbone.layers:
+                layer.trainable = False
+
+        def unfreeze_backbone(self):
+            for layer in self.backbone.layers:
+                layer.trainable = True
 
         def call(self, images, training=False):
             # Input is 448x448
@@ -158,7 +166,7 @@ class SingleModel:
             return m_all
 
 
-class RescalingUnet(keras.layers.Layer):
+class RescalingUnet(tf.keras.layers.Layer):
     def __init__(self):
         super(RescalingUnet, self).__init__()
         self.mean = [0.485, 0.456, 0.406]

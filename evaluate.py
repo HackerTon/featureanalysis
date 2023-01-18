@@ -1,9 +1,11 @@
 import datetime
 import time
 
-import segmentation_models as sm
+# import segmentation_models as sm
 import tensorflow as tf
-import tensorflow.keras as keras
+
+# import tensorflow.keras as keras
+from tensorflow import keras
 
 from model import RescalingUnet, SingleModel
 from preprocessing import UavidDataset
@@ -13,7 +15,7 @@ from metrics import jindex_class
 tf.random.set_seed(1024)
 
 # Set segmentation_models to use TF framework
-sm.set_framework("tf.keras")
+# sm.set_framework("tf.keras")
 
 
 def combined_model(mode="multi", n_class=8):
@@ -44,7 +46,7 @@ def combined_model(mode="multi", n_class=8):
 
 def mainSingle():
     n_class = 8
-    batch_size = 8
+    batch_size = 4
     trainds, testds = UavidDataset.create_ds(batch_size=batch_size)
     model = SingleModel.FPN(n_class=n_class)
     model_name = model.name
@@ -56,6 +58,7 @@ def mainSingle():
         f"trained_model/{model_name}",
         max_to_keep=None,
     )
+
     if ckptmg.latest_checkpoint is not None:
         ckpt.restore(ckptmg.latest_checkpoint).expect_partial()
         print("Checkpoint loaded!")

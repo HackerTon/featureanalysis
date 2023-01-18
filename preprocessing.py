@@ -177,6 +177,7 @@ class UavidDataset:
         path_dir="/home/hackerton/Downloads/uavid_v1.5_official_release_image/",
         maximage=False,
         seed=1024,
+        test_batch_size=None,
     ):
 
         directory = Path(path_dir)
@@ -186,7 +187,6 @@ class UavidDataset:
         labels = [
             str(x.absolute()) for x in directory.glob("uavid_train/**/Labels/*.png")
         ]
-        print(len(images))
         ds_train = tf.data.Dataset.from_tensor_slices((images, labels))
         ds_train = ds_train.shuffle(len(images), seed=seed)
 
@@ -209,7 +209,8 @@ class UavidDataset:
         ds_test = ds_test.map(UavidDataset.get_mask, tf.data.AUTOTUNE)
 
         ds_train = ds_train.batch(batch_size)
-        ds_test = ds_test.batch(batch_size)
+        ds_test = ds_test.batch(test_batch_size if test_batch_size else batch_size)
+
         ds_train = ds_train.prefetch(tf.data.AUTOTUNE)
         ds_test = ds_test.prefetch(tf.data.AUTOTUNE)
 

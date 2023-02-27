@@ -10,6 +10,7 @@ from preprocessing import UavidDataset
 # Set global seed for reproducibility
 tf.random.set_seed(1024)
 
+
 def combined_model(mode="multi", n_class=8):
     model_unet = sm.Unet(
         backbone_name="efficientnetb0",

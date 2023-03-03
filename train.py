@@ -136,8 +136,9 @@ def backprop(
     grad = tape.gradient(c_loss, model.trainable_variables)
     optimizer.apply_gradients(zip(grad, model.trainable_variables))
     iou = tf.reduce_mean(jindex_class(bs_labels, output))
+    average_c_loss = tf.reduce_mean(c_loss)
 
-    return c_loss, iou
+    return average_c_loss, iou
 
 
 @tf.function

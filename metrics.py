@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+
 # Mode must OUTPUT in logits [-inf, inf]
 # Make sure input dimension is [B, H, W, C]
 def jindex_class(target, pred):
@@ -15,4 +16,8 @@ def dice_coef(target, pred):
 
 
 def dice_loss(target, pred):
-    return 1 - tf.reduce_mean(dice_coef(target, pred))
+    """
+    This loss does not reduce batch dimension
+    Therefore, the output os [B, 1]
+    """
+    return 1 - dice_coef(target, pred)

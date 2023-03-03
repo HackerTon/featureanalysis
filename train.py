@@ -10,6 +10,7 @@ from preprocessing import UavidDataset
 # Set global seed for reproducibility
 tf.random.set_seed(1024)
 
+
 def combined_model(mode="multi", n_class=8):
     model_unet = sm.Unet(
         backbone_name="efficientnetb0",
@@ -135,8 +136,9 @@ def backprop(
     grad = tape.gradient(c_loss, model.trainable_variables)
     optimizer.apply_gradients(zip(grad, model.trainable_variables))
     iou = tf.reduce_mean(jindex_class(bs_labels, output))
+    average_c_loss = tf.reduce_mean(c_loss)
 
-    return c_loss, iou
+    return average_c_loss, iou
 
 
 @tf.function

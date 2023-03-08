@@ -1,130 +1,16 @@
 import datetime
 
 import tensorflow as tf
-from tensorflow import keras
+from tensorflow.python.keras import backend as K
 
-from metrics import dice_coef, dice_loss, jindex_class
-from model import RescalingUnet, SingleModel
+from metrics import dice_loss, jindex_class
+from model import MultiModel, SingleModel
 from preprocessing import UavidDataset
-
-# Set global seed for reproducibility
-tf.random.set_seed(1024)
-
-
-def combined_model(mode="multi", n_class=8):
-    model_unet = sm.Unet(
-        backbone_name="efficientnetb0",
-        encoder_weights="imagenet",
-        encoder_freeze=False,
-        classes=n_class,
-        decoder_use_batchnorm=False,
-    )
-    model_fpn = SingleModel.FPN(n_class)
-    conv1x1 = keras.layers.Conv2D(
-        n_class,
-        1,
-        padding="same",
-        activation="softmax",
-    )
-    rescale_layer = RescalingUnet()
-    input_layer = keras.layers.Input([None, None, 3])
-
-    output_model_fcn = model_unet(rescale_layer(input_layer))
-    output_model_fpn = model_fpn(input_layer)
-    output = (output_model_fcn + output_model_fpn) / 2
-    output_final = conv1x1(output)
-
-    return keras.Model([input_layer], [output_final], name="FPN_UNET_MEAN")
-
-
-# def mainCombined():
-#     # this iteration is calculated fom 160 iteration from
-#     # paper
-#     n_epoch = 20
-#     n_class = 8
-#     batch_size = 2
-#     trainds, testds = UavidDataset.create_ds(batch_size=batch_size)
-#     model = combined_model()
-#     model_name = model.name
-
-#     optimizer = keras.optimizers.Adam(1e-5)
-#     focal_loss = sm.losses.CategoricalFocalLoss()
-#     dice_loss = sm.losses.DiceLoss()
-
-#     ckpt = tf.train.Checkpoint(model=model, optimizer=optimizer)
-#     ckptmg = tf.train.CheckpointManager(ckpt, f"trained_model_test/{model_name}", 5)
-#     ckptmg.restore_or_initialize()
-
-#     current_time = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-
-#     train_log_dir = f"log_test/{model_name}/{current_time}/train"
-#     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
-#     test_log_dir = f"log_test/{model_name}/{current_time}/test"
-#     test_summary_writer = tf.summary.create_file_writer(test_log_dir)
-
-#     # Real training
-#     train_iteration = 0
-#     iteration = 0
-#     ALPHA = 1.0
-
-#     for epoch in range(n_epoch):
-#         for bs_images, bs_labels in trainds:
-#             initial_time = time.time()
-#             with tf.GradientTape() as t:
-#                 output = model(bs_images, training=True)
-#                 c_loss = dice_loss(bs_labels, output) + ALPHA * focal_loss(
-#                     bs_labels, output
-#                 )
-
-#             grad = t.gradient(c_loss, model.trainable_variables)
-#             optimizer.apply_gradients(zip(grad, model.trainable_variables))
-#             sum_loss = c_loss
-#             train_iteration += 1
-#             final_time = time.time()
-
-#             # calculate loss and IoU at iteration
-#             # this is train
-#             with train_summary_writer.as_default():
-#                 tf.summary.scalar(
-#                     "loss",
-#                     c_loss,
-#                     step=train_iteration,
-#                 )
-#                 tf.summary.scalar(
-#                     "iou",
-#                     sm.metrics.iou_score(bs_labels, output),
-#                     step=train_iteration,
-#                 )
-#                 tf.summary.scalar(
-#                     "timer per step",
-#                     (final_time - initial_time) / batch_size,
-#                     step=train_iteration,
-#                 )
-
-#         # for bs_images, bs_labels in testds:
-#         #     output = model(bs_images, training=False)
-#         #     sum_loss += (
-#         #         dice_loss(bs_labels, output) + ALPHA * focal_loss(bs_labels, output)
-#         #     ) * batch_size
-#         #     sum_iou += sm.metrics.iou_score(bs_labels, output) * batch_size
-#         #     iteration += batch_size
-
-#         # # calculate validation loss and IoU
-#         # # this is test
-#         # with test_summary_writer.as_default():
-#         #     tf.summary.scalar("loss", sum_loss / iteration, step=train_iteration)
-#         #     tf.summary.scalar("iou", sum_iou / iteration, step=train_iteration)
-
-#         iteration = 0
-#         sum_iou = 0
-#         sum_loss = 0
-#         ckptmg.save()
 
 
 @tf.function
 def backprop(
     model,
-    optimizer,
     bs_images,
     bs_labels,
 ):
@@ -134,14 +20,13 @@ def backprop(
         c_loss = dice_loss(bs_labels, output)
 
     grad = tape.gradient(c_loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(grad, model.trainable_variables))
     iou = tf.reduce_mean(jindex_class(bs_labels, output))
     average_c_loss = tf.reduce_mean(c_loss)
 
-    return average_c_loss, iou
+    return average_c_loss, iou, grad
 
 
-@tf.function
+@tf.function()
 def evaluate(
     model,
     bs_images,
@@ -154,19 +39,43 @@ def evaluate(
     return testing_loss, iou
 
 
-def mainSingle():
+def trainUniversal(model_choice=0):
+    # Training parameter
     n_epoch = 20
     n_class = 8
-    batch_size = 1
-    test_batch_size = 4
+    batch_size = 8
+    test_batch_size = 12
+
+    # Setting seed for reproducibility
+    tf.random.set_seed(1024)
+
     trainds, testds = UavidDataset.create_ds(
         batch_size=batch_size,
         test_batch_size=test_batch_size,
     )
-    model = SingleModel.FPN(n_class=n_class)
-    model_name = model.name
 
-    optimizer = keras.optimizers.Adam(0.00001)
+    if model_choice == 0:
+        model = SingleModel.FCN(n_class)
+    elif model_choice == 1:
+        model = SingleModel.UNET(n_class)
+    elif model_choice == 2:
+        model = SingleModel.FPN(n_class)
+    elif model_choice == 3:
+        model = MultiModel.FpnUnetProduct(n_class)
+    elif model_choice == 4:
+        model = MultiModel.FpnUnetSummation(n_class)
+    elif model_choice == 5:
+        model = MultiModel.FpnUnetConcatenation(n_class)
+    elif model_choice == 6:
+        model = MultiModel.FpnFcnConcatenation(n_class)
+    else:
+        assert "No model chosen"
+
+    # Initial the model with size
+    model(tf.random.uniform([1, 512, 512, 3]))
+
+    model_name = model.name
+    optimizer = tf.keras.optimizers.Adam(1e-5)
 
     ckpt = tf.train.Checkpoint(model=model, optimizer=optimizer)
     ckptmg = tf.train.CheckpointManager(
@@ -174,19 +83,18 @@ def mainSingle():
         f"trained_model/{model_name}",
         max_to_keep=None,
     )
+
     if ckptmg.latest_checkpoint is not None:
         ckpt.restore(ckptmg.latest_checkpoint).expect_partial()
         print("Checkpoint loaded!")
 
     current_time = datetime.datetime.now().strftime(r"%Y%m%d-%H%M%S")
-
     train_log_dir = f"log_test/{model_name}/{current_time}/train"
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
     test_log_dir = f"log_test/{model_name}/{current_time}/test"
     test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
     train_iteration = 0
-
     iteration = 0
     for epoch in range(n_epoch):
         # if epoch == 0:
@@ -197,12 +105,13 @@ def mainSingle():
 
         initial_time = tf.timestamp()
         for bs_images, bs_labels in trainds:
-            c_loss, iou = backprop(
+            c_loss, iou, grad = backprop(
                 model,
-                optimizer,
                 bs_images,
                 bs_labels,
             )
+            optimizer.apply_gradients(zip(grad, model.trainable_variables))
+
             train_iteration += 1
             iteration += 1
             with train_summary_writer.as_default():
@@ -236,7 +145,9 @@ def mainSingle():
         final_time = tf.timestamp()
 
         with test_summary_writer.as_default():
-            tf.summary.scalar("Loss", testing_loss / iteration, step=train_iteration)
+            tf.summary.scalar(
+                "Loss", tf.reduce_mean(testing_loss) / iteration, step=train_iteration
+            )
             tf.summary.scalar("IoU", iou_score / iteration, step=train_iteration)
             tf.summary.scalar(
                 "Rate of fnbprob",
@@ -245,6 +156,11 @@ def mainSingle():
             )
         ckptmg.save()
 
+    # Clear session for this function
+    K.clear_session()
+    del model
+
 
 if __name__ == "__main__":
-    mainSingle()
+    for i in range(7):
+        trainUniversal(model_choice=i)

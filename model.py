@@ -1,3 +1,4 @@
+import segmentation_models as sm
 import tensorflow as tf
 
 
@@ -164,6 +165,151 @@ class SingleModel:
             m_all = self.upscalefinal(m_all)
 
             return m_all
+
+    class UNET(tf.keras.Model):
+        def __init__(self, n_classes=8, backbone=None, **kwargs):
+            super().__init__(name="UNET", **kwargs)
+            self.model = sm.Unet(
+                backbone_name="efficientnetb0",
+                encoder_weights="imagenet",
+                encoder_freeze=False,
+                activation="linear",
+                classes=n_classes,
+                decoder_use_batchnorm=False,
+            )
+            self.preprocessing = RescalingUnet()
+
+        def call(self, images, training=False):
+            ppreprocess_input = self.preprocessing(images)
+            return self.model(ppreprocess_input, training)
+
+    class FCN(tf.keras.Model):
+        def __init__(self, n_classes=8, backbone=None, **kwargs):
+            super().__init__(name="Fully_Convolutional_Network", **kwargs)
+
+            self.backbone = create_backbone_efficient()
+            self.conv1 = tf.keras.layers.Conv2D(
+                filters=(n_classes),
+                kernel_size=(1, 1),
+                padding="same",
+                activation="relu",
+            )
+            self.conv2 = tf.keras.layers.Conv2D(
+                filters=(n_classes),
+                kernel_size=(1, 1),
+                padding="same",
+                activation="relu",
+            )
+            self.conv3 = tf.keras.layers.Conv2D(
+                filters=(n_classes),
+                kernel_size=(1, 1),
+                padding="same",
+                activation="relu",
+            )
+            self.upscale2x_1 = tf.keras.layers.Convolution2DTranspose(
+                filters=8,
+                kernel_size=(4, 4),
+                strides=(2, 2),
+                padding="same",
+                activation="relu",
+            )
+            self.upscale2x_2 = tf.keras.layers.Convolution2DTranspose(
+                filters=8,
+                kernel_size=(4, 4),
+                strides=(2, 2),
+                padding="same",
+                activation="relu",
+            )
+            self.upscale2x_3 = tf.keras.layers.Convolution2DTranspose(
+                filters=8,
+                kernel_size=(4, 4),
+                strides=(2, 2),
+                padding="same",
+                activation="relu",
+            )
+            self.upscale2x_4 = tf.keras.layers.Convolution2DTranspose(
+                filters=8,
+                kernel_size=(4, 4),
+                strides=(4, 4),
+                padding="same",
+                activation="relu",
+            )
+
+        def call(self, images, training=False):
+            conv1_o, conv2_o, conv3_o, conv4_o = self.backbone(images, training=False)
+            conv1_o = self.conv1(conv1_o)
+            conv2_o = self.conv2(conv2_o)
+            conv3_o = self.conv3(conv3_o)
+
+            fcn_16x = self.upscale2x_1(conv4_o) + conv3_o
+            fcn_8x = self.upscale2x_2(fcn_16x) + conv2_o
+            fcn_4x = self.upscale2x_3(fcn_8x) + conv1_o
+            final_output = self.upscale2x_4(fcn_4x)
+            return final_output
+
+
+class MultiModel:
+    # FPN + UNET
+    class FpnUnetProduct(tf.keras.Model):
+        def __init__(self, n_class=8):
+            super().__init__(name="Fpn_Unet_Product")
+
+            self.fpn = SingleModel.FPN(n_class)
+            self.unet = SingleModel.UNET(n_class)
+            self.conv1x1 = tf.keras.layers.Conv2D(n_class, 1, padding="same")
+
+        def call(self, images, training=False):
+            output_fpn = self.fpn(images, training)
+            output_unet = self.unet(images, training)
+            output_final = self.conv1x1(output_fpn * output_unet)
+            return output_final
+
+    class FpnUnetSummation(tf.keras.Model):
+        def __init__(self, n_class=8):
+            super().__init__(name="Fpn_Unet_Summation")
+
+            self.fpn = SingleModel.FPN(n_class)
+            self.unet = SingleModel.UNET(n_class)
+            self.conv1x1 = tf.keras.layers.Conv2D(n_class, 1, padding="same")
+
+        def call(self, images, training=False):
+            output_fpn = self.fpn(images, training)
+            output_unet = self.unet(images, training)
+            output_final = self.conv1x1(output_fpn + output_unet)
+            return output_final
+
+    class FpnUnetConcatenation(tf.keras.Model):
+        def __init__(self, n_class=8):
+            super().__init__(name="Fpn_Unet_Concatenation")
+
+            self.fpn = SingleModel.FPN(n_class)
+            self.unet = SingleModel.UNET(n_class)
+            self.conv1x1 = tf.keras.layers.Conv2D(n_class, 1, padding="same")
+            self.concatenation = tf.keras.layers.Concatenate()
+
+        def call(self, images, training=False):
+            output_fpn = self.fpn(images, training)
+            output_unet = self.unet(images, training)
+            output = self.concatenation([output_fpn, output_unet])
+            output_final = self.conv1x1(output)
+            return output_final
+
+    # FPN + FCN
+    class FpnFcnConcatenation(tf.keras.Model):
+        def __init__(self, n_class=8):
+            super().__init__(name="Fpn_Fcn_Concatenation")
+
+            self.fpn = SingleModel.FPN(n_class)
+            self.fcn = SingleModel.FCN(n_class)
+            self.conv1x1 = tf.keras.layers.Conv2D(n_class, 1, padding="same")
+            self.concatenation = tf.keras.layers.Concatenate()
+
+        def call(self, images, training=False):
+            output_fpn = self.fpn(images, training)
+            output_fcn = self.fcn(images, training)
+            output = self.concatenation([output_fpn, output_fcn])
+            output_final = self.conv1x1(output)
+            return output_final
 
 
 class RescalingUnet(tf.keras.layers.Layer):

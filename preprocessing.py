@@ -125,16 +125,34 @@ class UavidDataset:
     # [w, h, c], 448, 448, 3
     @staticmethod
     def decode_crop(image, label):
-        image = image[368 // 2 : -(368 // 2), 256 // 2 : -(256 // 2)]
-        label = label[368 // 2 : -(368 // 2), 256 // 2 : -(256 // 2)]
-
         img_array = []
         label_array = []
 
-        for index in range(4 * 8):
-            x, y = index // 8, index % 8
-            img_array.append(image[448 * x : 448 * (1 + x), 448 * y : 448 * (1 + y)])
-            label_array.append(label[448 * x : 448 * (1 + x), 448 * y : 448 * (1 + y)])
+        blocks = [
+            (0, 1024, 0, 2048),
+            (0, 1024, 896, 2944),
+            (0, 1024, 1792, 3840),
+            (568, 1592, 0, 2048),
+            (568, 1592, 896, 2944),
+            (568, 1592, 1792, 3840),
+            (1136, 2160, 0, 2048),
+            (1136, 2160, 896, 2944),
+            (1136, 2160, 1792, 3840),
+        ]
+
+        for y_min, y_max, x_min, x_max in blocks:
+            for index in range(8):
+                y, x = index // 4, index % 4
+                block_y_min = y_min + (y * 512)
+                block_y_max = y_min + (y + 1) * 512
+                block_x_min = x_min + x * 512
+                block_x_max = x_min + (x + 1) * 512
+                img_array.append(
+                    image[block_y_min:block_y_max, block_x_min:block_x_max]
+                )
+                label_array.append(
+                    label[block_y_min:block_y_max, block_x_min:block_x_max]
+                )
 
         return tf.data.Dataset.from_tensor_slices((img_array, label_array))
 
@@ -179,7 +197,6 @@ class UavidDataset:
         seed=1024,
         test_batch_size=None,
     ):
-
         directory = Path(path_dir)
         images = [
             str(x.absolute()) for x in directory.glob("uavid_train/**/Images/*.png")
@@ -187,7 +204,7 @@ class UavidDataset:
         labels = [
             str(x.absolute()) for x in directory.glob("uavid_train/**/Labels/*.png")
         ]
-        ds_train = tf.data.Dataset.from_tensor_slices((images, labels))
+        ds_train: tf.data.Dataset = tf.data.Dataset.from_tensor_slices((images, labels))
         ds_train = ds_train.shuffle(len(images), seed=seed)
 
         images = [
@@ -196,7 +213,7 @@ class UavidDataset:
         labels = [
             str(x.absolute()) for x in directory.glob("uavid_val/**/Labels/*.png")
         ]
-        ds_test = tf.data.Dataset.from_tensor_slices((images, labels))
+        ds_test: tf.data.Dataset = tf.data.Dataset.from_tensor_slices((images, labels))
 
         ds_train = ds_train.map(UavidDataset.get_image_decode, tf.data.AUTOTUNE)
         ds_test = ds_test.map(UavidDataset.get_image_decode, tf.data.AUTOTUNE)

@@ -232,3 +232,113 @@ class UavidDataset:
         ds_test = ds_test.prefetch(tf.data.AUTOTUNE)
 
         return ds_train, ds_test
+
+
+class UavidDatasetOld:
+    @staticmethod
+    def labels():
+        return ["bg", "blding", "road", "tree", "vege", "movcar", "satcar", "human"]
+
+    @staticmethod
+    def get_image_decode(image, label):
+        image = tf.io.read_file(image, "image")
+        label = tf.io.read_file(label, "label")
+
+        image = tf.image.decode_image(image)
+        label = tf.image.decode_image(label)
+
+        return image, label
+
+    # [w, h, c], 448, 448, 3
+    @staticmethod
+    def decode_crop(image, label):
+        image = image[368 // 2 : -(368 // 2), 256 // 2 : -(256 // 2)]
+        label = label[368 // 2 : -(368 // 2), 256 // 2 : -(256 // 2)]
+
+        img_array = []
+        label_array = []
+
+        for index in range(4 * 8):
+            x, y = index // 8, index % 8
+            img_array.append(image[448 * x : 448 * (1 + x), 448 * y : 448 * (1 + y)])
+            label_array.append(label[448 * x : 448 * (1 + x), 448 * y : 448 * (1 + y)])
+
+        return tf.data.Dataset.from_tensor_slices((img_array, label_array))
+
+    @staticmethod
+    def get_mask(image, label):
+        labels = []
+        labels.append(
+            (label[:, :, 0] == 0) & (label[:, :, 1] == 0) & (label[:, :, 2] == 0)
+        )
+        labels.append(
+            (label[:, :, 0] == 128) & (label[:, :, 1] == 0) & (label[:, :, 2] == 0)
+        )
+        labels.append(
+            (label[:, :, 0] == 128) & (label[:, :, 1] == 64) & (label[:, :, 2] == 128)
+        )
+        labels.append(
+            (label[:, :, 0] == 0) & (label[:, :, 1] == 128) & (label[:, :, 2] == 0)
+        )
+        labels.append(
+            (label[:, :, 0] == 128) & (label[:, :, 1] == 128) & (label[:, :, 2] == 0)
+        )
+        labels.append(
+            (label[:, :, 0] == 64) & (label[:, :, 1] == 0) & (label[:, :, 2] == 128)
+        )
+        labels.append(
+            (label[:, :, 0] == 192) & (label[:, :, 1] == 0) & (label[:, :, 2] == 192)
+        )
+        labels.append(
+            (label[:, :, 0] == 64) & (label[:, :, 1] == 64) & (label[:, :, 2] == 0)
+        )
+        labels = tf.cast(labels, tf.float32)
+        image = tf.cast(image, tf.float32)
+
+        # must perform this
+        return image, tf.transpose(labels, [1, 2, 0])
+
+    @staticmethod
+    def create_ds(
+        batch_size,
+        path_dir="/home/hackerton/Downloads/uavid_v1.5_official_release_image/",
+        maximage=False,
+        seed=1024,
+        test_batch_size=None,
+    ):
+
+        directory = Path(path_dir)
+        images = [
+            str(x.absolute()) for x in directory.glob("uavid_train/**/Images/*.png")
+        ]
+        labels = [
+            str(x.absolute()) for x in directory.glob("uavid_train/**/Labels/*.png")
+        ]
+        ds_train = tf.data.Dataset.from_tensor_slices((images, labels))
+        ds_train = ds_train.shuffle(len(images), seed=seed)
+
+        images = [
+            str(x.absolute()) for x in directory.glob("uavid_val/**/Images/*.png")
+        ]
+        labels = [
+            str(x.absolute()) for x in directory.glob("uavid_val/**/Labels/*.png")
+        ]
+        ds_test = tf.data.Dataset.from_tensor_slices((images, labels))
+
+        ds_train = ds_train.map(UavidDataset.get_image_decode, tf.data.AUTOTUNE)
+        ds_test = ds_test.map(UavidDataset.get_image_decode, tf.data.AUTOTUNE)
+
+        if not maximage:
+            ds_train = ds_train.flat_map(UavidDataset.decode_crop)
+            ds_test = ds_test.flat_map(UavidDataset.decode_crop)
+
+        ds_train = ds_train.map(UavidDataset.get_mask, tf.data.AUTOTUNE)
+        ds_test = ds_test.map(UavidDataset.get_mask, tf.data.AUTOTUNE)
+
+        ds_train = ds_train.batch(batch_size)
+        ds_test = ds_test.batch(test_batch_size if test_batch_size else batch_size)
+
+        ds_train = ds_train.prefetch(tf.data.AUTOTUNE)
+        ds_test = ds_test.prefetch(tf.data.AUTOTUNE)
+
+        return ds_train, ds_test

@@ -157,7 +157,7 @@ def trainUniversal(model_choice=0, batch_size=8, test_batch_size=12):
 
 
 if __name__ == "__main__":
-    for i in range(2, 8):
+    for i in range(0, 8):
         # Change batch_size to 8 and 16 for single network
         if i < 3:
             trainUniversal(model_choice=i)

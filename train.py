@@ -5,7 +5,7 @@ from tensorflow.python.keras import backend as K
 
 from metrics import dice_loss, jindex_class
 from model import MultiModel, SingleModel
-from preprocessing import UavidDataset
+from preprocessing import UavidDataset, UavidDatasetOld
 
 
 @tf.function
@@ -20,7 +20,7 @@ def backprop(
         c_loss = dice_loss(bs_labels, output)
 
     grad = tape.gradient(c_loss, model.trainable_variables)
-    iou = tf.reduce_mean(jindex_class(bs_labels, output))
+    iou = tf.reduce_mean(tf.reduce_mean(jindex_class(bs_labels, output), axis=-1))
     average_c_loss = tf.reduce_mean(c_loss)
 
     return average_c_loss, iou, grad
@@ -39,17 +39,15 @@ def evaluate(
     return testing_loss, iou
 
 
-def trainUniversal(model_choice=0):
+def trainUniversal(model_choice=0, batch_size=8, test_batch_size=12):
     # Training parameter
     n_epoch = 20
     n_class = 8
-    batch_size = 8
-    test_batch_size = 12
 
     # Setting seed for reproducibility
     tf.random.set_seed(1024)
 
-    trainds, testds = UavidDataset.create_ds(
+    trainds, testds = UavidDatasetOld.create_ds(
         batch_size=batch_size,
         test_batch_size=test_batch_size,
     )
@@ -75,7 +73,7 @@ def trainUniversal(model_choice=0):
     model(tf.random.uniform([1, 512, 512, 3]))
 
     model_name = model.name
-    optimizer = tf.keras.optimizers.Adam(1e-5)
+    optimizer = tf.keras.optimizers.Adam(5e-5)
 
     ckpt = tf.train.Checkpoint(model=model, optimizer=optimizer)
     ckptmg = tf.train.CheckpointManager(
@@ -97,12 +95,6 @@ def trainUniversal(model_choice=0):
     train_iteration = 0
     iteration = 0
     for epoch in range(n_epoch):
-        # if epoch == 0:
-        #     model.freeze_backbone()
-        # elif epoch == 1:
-        #     model.unfreeze_backbone()
-        #     optimizer.lr.assign(0.00001)
-
         initial_time = tf.timestamp()
         for bs_images, bs_labels in trainds:
             c_loss, iou, grad = backprop(
@@ -110,6 +102,9 @@ def trainUniversal(model_choice=0):
                 bs_images,
                 bs_labels,
             )
+
+            print(c_loss, iou)
+
             optimizer.apply_gradients(zip(grad, model.trainable_variables))
 
             train_iteration += 1
@@ -128,7 +123,7 @@ def trainUniversal(model_choice=0):
         final_time = tf.timestamp()
         with train_summary_writer.as_default():
             tf.summary.scalar(
-                "Rate of fnbprob",
+                "Number of forward-pass per second",
                 (batch_size * iteration) / (final_time - initial_time),
                 step=train_iteration,
             )
@@ -150,7 +145,7 @@ def trainUniversal(model_choice=0):
             )
             tf.summary.scalar("IoU", iou_score / iteration, step=train_iteration)
             tf.summary.scalar(
-                "Rate of fnbprob",
+                "Number of forward-pass per second",
                 (test_batch_size * iteration) / (final_time - initial_time),
                 step=train_iteration,
             )
@@ -162,5 +157,10 @@ def trainUniversal(model_choice=0):
 
 
 if __name__ == "__main__":
-    for i in range(7):
-        trainUniversal(model_choice=i)
+    for i in range(2, 8):
+        # Change batch_size to 8 and 16 for single network
+        if i < 3:
+            trainUniversal(model_choice=i)
+        else:
+        # Change batch_size to 8 and 16 for single network
+            trainUniversal(model_choice=i, batch_size=4, test_batch_size=6)

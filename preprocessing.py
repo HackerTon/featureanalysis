@@ -205,7 +205,7 @@ class UavidDataset:
             str(x.absolute()) for x in directory.glob("uavid_train/**/Labels/*.png")
         ]
         ds_train: tf.data.Dataset = tf.data.Dataset.from_tensor_slices((images, labels))
-        ds_train = ds_train.shuffle(len(images), seed=seed)
+        ds_train = ds_train.shuffle(6400, seed=seed)
 
         images = [
             str(x.absolute()) for x in directory.glob("uavid_val/**/Images/*.png")
@@ -315,7 +315,7 @@ class UavidDatasetOld:
             str(x.absolute()) for x in directory.glob("uavid_train/**/Labels/*.png")
         ]
         ds_train = tf.data.Dataset.from_tensor_slices((images, labels))
-        ds_train = ds_train.shuffle(len(images), seed=seed)
+        ds_train = ds_train.shuffle(6400, seed=seed)
 
         images = [
             str(x.absolute()) for x in directory.glob("uavid_val/**/Images/*.png")
@@ -325,15 +325,15 @@ class UavidDatasetOld:
         ]
         ds_test = tf.data.Dataset.from_tensor_slices((images, labels))
 
-        ds_train = ds_train.map(UavidDataset.get_image_decode, tf.data.AUTOTUNE)
-        ds_test = ds_test.map(UavidDataset.get_image_decode, tf.data.AUTOTUNE)
+        ds_train = ds_train.map(UavidDatasetOld.get_image_decode, tf.data.AUTOTUNE)
+        ds_test = ds_test.map(UavidDatasetOld.get_image_decode, tf.data.AUTOTUNE)
 
         if not maximage:
-            ds_train = ds_train.flat_map(UavidDataset.decode_crop)
-            ds_test = ds_test.flat_map(UavidDataset.decode_crop)
+            ds_train = ds_train.flat_map(UavidDatasetOld.decode_crop)
+            ds_test = ds_test.flat_map(UavidDatasetOld.decode_crop)
 
-        ds_train = ds_train.map(UavidDataset.get_mask, tf.data.AUTOTUNE)
-        ds_test = ds_test.map(UavidDataset.get_mask, tf.data.AUTOTUNE)
+        ds_train = ds_train.map(UavidDatasetOld.get_mask, tf.data.AUTOTUNE)
+        ds_test = ds_test.map(UavidDatasetOld.get_mask, tf.data.AUTOTUNE)
 
         ds_train = ds_train.batch(batch_size)
         ds_test = ds_test.batch(test_batch_size if test_batch_size else batch_size)

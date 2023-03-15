@@ -130,7 +130,7 @@ def evaluation(model_choice=0, batch_size=8, test_batch_size=16, results_df=None
     sum_dice_testing = np.zeros([n_class])
 
     initial_time = time.time()
-    sum_iou, sum_dice, iteration = evaluateV2(model)
+    sum_iou, sum_dice, iteration = evaluateV2(model, testds)
     sum_iou_testing += sum_iou
     sum_dice_testing += sum_dice
 

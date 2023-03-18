@@ -29,20 +29,21 @@ def evaluate(
     return iou_index, dice_index
 
 
-@tf.function()
+# @tf.function()
 def evaluateV2(
     model,
     dataset,
+    batch_size, 
 ):
-    sum_iou = tf.zeros([8])
-    sum_dice = tf.zeros([8])
-    iteration = tf.zeros([1])
+    sum_iou = tf.zeros([8], dtype=tf.float32)
+    sum_dice = tf.zeros([8], dtype=tf.float32)
+    iteration = tf.zeros([1], dtype=tf.float32)
     for bs_images, bs_labels in dataset:
         output = model(bs_images, training=False)
         output = tf.nn.softmax(output)
-        sum_iou += tf.reduce_mean(jindex_class(bs_labels, output), axis=0)
-        sum_dice += tf.reduce_mean(dice_coef(bs_labels, output), axis=0)
-        iteration += 1
+        sum_iou += tf.reduce_sum(jindex_class(bs_labels, output), axis=0)
+        sum_dice += tf.reduce_sum(dice_coef(bs_labels, output), axis=0)
+        iteration += batch_size
     return sum_iou, sum_dice, iteration
 
 
@@ -99,7 +100,7 @@ def evaluation(model_choice=0, batch_size=8, test_batch_size=16, results_df=None
     sum_dice_training = np.zeros([n_class])
 
     initial_time = time.time()
-    sum_iou, sum_dice, iteration = evaluateV2(model, trainds)
+    sum_iou, sum_dice, iteration = evaluateV2(model, trainds.take(1), test_batch_size)
     sum_iou_training += sum_iou
     sum_dice_training += sum_dice
 
@@ -130,7 +131,7 @@ def evaluation(model_choice=0, batch_size=8, test_batch_size=16, results_df=None
     sum_dice_testing = np.zeros([n_class])
 
     initial_time = time.time()
-    sum_iou, sum_dice, iteration = evaluateV2(model, testds)
+    sum_iou, sum_dice, iteration = evaluateV2(model, testds.take(1), test_batch_size)
     sum_iou_testing += sum_iou
     sum_dice_testing += sum_dice
 
@@ -170,7 +171,7 @@ if __name__ == "__main__":
     results_df = pd.DataFrame(columns=label)
 
     for i in range(7):
-        results_df = evaluation(model_choice=i, results_df=results_df)
+        results_df = evaluation(model_choice=i, results_df=results_df, test_batch_size=6)
 
-    results_df.to_csv('all_results.csv')
+    results_df.to_csv('all_results_test.csv')
 

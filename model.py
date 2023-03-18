@@ -95,7 +95,7 @@ class SingleModel:
                 padding="same",
                 activation="relu",
             )
-            self.upscale2x = tf.keras.layers.UpSampling2D()
+            self.upscale2x = tf.keras.layers.UpSampling2D((2, 2))
             self.upscale4x = tf.keras.layers.UpSampling2D((4, 4))
             self.upscale8x = tf.keras.layers.UpSampling2D((8, 8))
             self.concatenate = tf.keras.layers.Concatenate()
@@ -115,7 +115,7 @@ class SingleModel:
                 size=(4, 4),
                 interpolation="bilinear",
             )
-            self.zeropadding = tf.keras.layers.ZeroPadding2D()
+            self.add = tf.keras.layers.Add()
 
         def freeze_backbone(self):
             for layer in self.backbone.layers:
@@ -131,26 +131,26 @@ class SingleModel:
             # Training argument for backbone passed must be set to False.
             # This is because we do not want to update the batch normalization
             # Layer of EfficientNetB0
-            conv2, conv3, conv4, conv5 = self.backbone.call(images, training=False)
+            conv2, conv3, conv4, conv5 = self.backbone(images, training=False)
             conv5_m = self.conv5_1x1(conv5)
             conv5_p = self.conv5_3x3_1(conv5_m)
             conv5_p = self.conv5_3x3_2(conv5_p)
 
             conv4_m_1 = self.upscale2x(conv5_m)
             conv4_m_2 = self.conv4_1x1(conv4)
-            conv4_m = tf.keras.layers.add([conv4_m_1, conv4_m_2])
+            conv4_m = self.add([conv4_m_1, conv4_m_2])
             conv4_p = self.conv4_3x3_1(conv4_m)
             conv4_p = self.conv4_3x3_2(conv4_p)
 
             conv3_m_1 = self.upscale2x(conv4_m)
             conv3_m_2 = self.conv3_1x1(conv3)
-            conv3_m = tf.keras.layers.add([conv3_m_1, conv3_m_2])
+            conv3_m = self.add([conv3_m_1, conv3_m_2])
             conv3_p = self.conv3_3x3_1(conv3_m)
             conv3_p = self.conv3_3x3_2(conv3_p)
 
             conv2_m_1 = self.upscale2x(conv3_m)
             conv2_m_2 = self.conv2_1x1(conv2)
-            conv2_m = tf.keras.layers.add([conv2_m_1, conv2_m_2])
+            conv2_m = self.add([conv2_m_1, conv2_m_2])
             conv2_p = self.conv2_3x3_1(conv2_m)
             conv2_p = self.conv2_3x3_2(conv2_p)
 
@@ -234,16 +234,27 @@ class SingleModel:
                 padding="same",
                 activation="relu",
             )
+            self.add = tf.keras.layers.Add()
+
+        def freeze_backbone(self):
+            for layer in self.backbone.layers:
+                layer.trainable = False
+
+        def unfreeze_backbone(self):
+            for layer in self.backbone.layers:
+                layer.trainable = True
 
         def call(self, images, training=False):
-            conv1_o, conv2_o, conv3_o, conv4_o = self.backbone(images, training=False)
+            conv1_o, conv2_o, conv3_o, conv4_o = self.backbone(
+                images, training=False
+            )
             conv1_o = self.conv1(conv1_o)
             conv2_o = self.conv2(conv2_o)
             conv3_o = self.conv3(conv3_o)
 
-            fcn_16x = self.upscale2x_1(conv4_o) + conv3_o
-            fcn_8x = self.upscale2x_2(fcn_16x) + conv2_o
-            fcn_4x = self.upscale2x_3(fcn_8x) + conv1_o
+            fcn_16x = self.add([self.upscale2x_1(conv4_o), conv3_o])
+            fcn_8x = self.add([self.upscale2x_2(fcn_16x), conv2_o])
+            fcn_4x = self.add([self.upscale2x_3(fcn_8x), conv1_o])
             final_output = self.upscale2x_4(fcn_4x)
             return final_output
 

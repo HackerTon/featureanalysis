@@ -306,7 +306,6 @@ class UavidDatasetOld:
         seed=1024,
         test_batch_size=None,
     ):
-
         directory = Path(path_dir)
         images = [
             str(x.absolute()) for x in directory.glob("uavid_train/**/Images/*.png")

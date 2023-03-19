@@ -86,7 +86,7 @@ def trainUniversal(model_choice=0, batch_size=8, test_batch_size=16):
     model_name = model.name
     # Learning rate for FCN is set to 0.0001
     # While learning rate for others are set to default 0.001
-    optimizer = tf.keras.optimizers.Adam(5e-5)
+    optimizer = tf.keras.optimizers.Adam(1e-5)
 
     ckpt = tf.train.Checkpoint(model=model, optimizer=optimizer)
     ckptmg = tf.train.CheckpointManager(

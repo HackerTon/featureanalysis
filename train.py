@@ -49,7 +49,6 @@ def evaluate(
     iou = tf.reduce_mean(jindex_class(bs_labels, tf.nn.softmax(output)))
     return tf.reduce_mean(loss), iou
 
-
 def trainUniversal(model_choice=0, batch_size=8, test_batch_size=16):
     # Training parameter
     n_epoch = 50
@@ -61,17 +60,17 @@ def trainUniversal(model_choice=0, batch_size=8, test_batch_size=16):
     trainds, testds = UavidDataset.create_ds(
         batch_size=batch_size,
         test_batch_size=test_batch_size,
-        path_dir='/pool/storage/uavid_v1.5_official_release_image/'
+        # path_dir='/pool/storage/uavid_v1.5_official_release_image/'
     )
 
     if model_choice == 0:
         model = SingleModel.FCN(n_class)
-        # model.freeze_backbone()
+        model.freeze_backbone()
     elif model_choice == 1:
         model = SingleModel.UNET(n_class)
     elif model_choice == 2:
         model = SingleModel.FPN(n_class)
-        # model.freeze_backbone()
+        model.freeze_backbone()
     elif model_choice == 3:
         model = MultiModel.FpnUnetProduct(n_class)
     elif model_choice == 4:
@@ -80,14 +79,9 @@ def trainUniversal(model_choice=0, batch_size=8, test_batch_size=16):
         model = MultiModel.FpnUnetConcatenation(n_class)
     elif model_choice == 6:
         model = MultiModel.FpnFcnConcatenation(n_class)
+        model.freeze_backbone()
     else:
         assert "No model chosen"
-
-    for layer in model.backbone.layers:
-        layer.trainable = False
-
-    # Initial the model with size
-    # model(tf.random.uniform([1, 512, 512, 3]))
 
     model_name = model.name
     # Learning rate for FCN is set to 0.0001
@@ -111,15 +105,12 @@ def trainUniversal(model_choice=0, batch_size=8, test_batch_size=16):
     test_log_dir = f"log_test/{model_name}/{current_time}/test"
     test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
-    # Set learning rate
-    optimizer.learning_rate.assign(0.00001)
-
     train_iteration = 0
     iteration = 0
     for epoch in range(n_epoch):
-        # if epoch == 2:
-        #     model.unfreeze_backbone()
-        #     optimizer = tf.keras.optimizers.Adam(5e-4)
+        if epoch == 2:
+            model.unfreeze_backbone()
+            optimizer.learning_rate.assign(1e-3)
 
         initial_time = tf.timestamp()
         for bs_images, bs_labels in trainds:
@@ -180,7 +171,7 @@ def trainUniversal(model_choice=0, batch_size=8, test_batch_size=16):
 
 
 if __name__ == "__main__":
-    for i in range(2, 7):
+    for i in range(0, 7):
         # Change batch_size to 8 and 16 for single network
         if i < 3:
             trainUniversal(model_choice=i)

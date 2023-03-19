@@ -168,16 +168,23 @@ class SingleModel:
 
     class UNET(tf.keras.Model):
         def __init__(self, n_classes=8, backbone=None, **kwargs):
+            '''
+            Encoder is frozen at first
+            '''
             super().__init__(name="UNET", **kwargs)
             self.model = sm.Unet(
                 backbone_name="efficientnetb0",
                 encoder_weights="imagenet",
-                encoder_freeze=False,
+                encoder_freeze=True,
                 activation="linear",
                 classes=n_classes,
                 decoder_use_batchnorm=False,
             )
             self.preprocessing = RescalingUnet()
+
+        def unfreeze_backbone(self):
+            for layer in self.model.layers:
+                layer.trainable = True
 
         def call(self, images, training=False):
             ppreprocess_input = self.preprocessing(images)
@@ -269,6 +276,16 @@ class MultiModel:
             self.unet = SingleModel.UNET(n_class)
             self.conv1x1 = tf.keras.layers.Conv2D(n_class, 1, padding="same")
 
+            # Fpn is frozen first
+            self.fpn.freeze_backbone()
+
+        def freeze_backbone(self):
+            self.fpn.freeze_backbone()
+            self.unet.unfreeze_backbone()
+
+        def unfreeze_backbone(self):
+            self.fpn.unfreeze_backbone()
+
         def call(self, images, training=False):
             output_fpn = self.fpn(images, training)
             output_unet = self.unet(images, training)
@@ -282,6 +299,14 @@ class MultiModel:
             self.fpn = SingleModel.FPN(n_class)
             self.unet = SingleModel.UNET(n_class)
             self.conv1x1 = tf.keras.layers.Conv2D(n_class, 1, padding="same")
+
+            # Fpn is frozen first
+            self.fpn.freeze_backbone()
+
+        def unfreeze_backbone(self):
+            self.fpn.freeze_backbone()
+            self.unet.unfreeze_backbone()
+
 
         def call(self, images, training=False):
             output_fpn = self.fpn(images, training)
@@ -297,6 +322,13 @@ class MultiModel:
             self.unet = SingleModel.UNET(n_class)
             self.conv1x1 = tf.keras.layers.Conv2D(n_class, 1, padding="same")
             self.concatenation = tf.keras.layers.Concatenate()
+
+            # Fpn is frozen first
+            self.fpn.freeze_backbone()
+
+        def unfreeze_backbone(self):
+            self.fpn.freeze_backbone()
+            self.unet.unfreeze_backbone()
 
         def call(self, images, training=False):
             output_fpn = self.fpn(images, training)
@@ -314,6 +346,14 @@ class MultiModel:
             self.fcn = SingleModel.FCN(n_class)
             self.conv1x1 = tf.keras.layers.Conv2D(n_class, 1, padding="same")
             self.concatenation = tf.keras.layers.Concatenate()
+
+        def freeze_backbone(self):
+            self.fpn.freeze_backbone()
+            self.fcn.freeze_backbone()
+
+        def unfreeze_backbone(self):
+            self.fpn.unfreeze_backbone()
+            self.fcn.unfreeze_backbone()
 
         def call(self, images, training=False):
             output_fpn = self.fpn(images, training)

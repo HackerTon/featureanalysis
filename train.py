@@ -30,7 +30,7 @@ def backprop(
             ),
             axis=[1, 2],
         ) + dice_loss(bs_labels, softmaxed_output)
-        loss = categorical_focal_dice_loss(bs_labels, softmaxed_output)
+        # loss = categorical_focal_dice_loss(bs_labels, softmaxed_output)
     grad = tape.gradient(loss, model.trainable_variables)
     iou = tf.reduce_mean(jindex_class(bs_labels, softmaxed_output))
     return tf.reduce_mean(loss), iou, grad

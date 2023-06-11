@@ -1,9 +1,15 @@
 import segmentation_models as sm
 import tensorflow as tf
 
+sm.set_framework('tf.keras')
 
 def create_backbone_efficient():
     _backbone = tf.keras.applications.EfficientNetB0(include_top=False)
+    
+    for layer in _backbone.layers:
+        if isinstance(layer, tf.keras.layers.BatchNormalization):
+            layer.trainable = False
+
     outputs = [
         layer.output
         for layer in _backbone.layers
@@ -175,20 +181,21 @@ class SingleModel:
             self.model = sm.Unet(
                 backbone_name="efficientnetb0",
                 encoder_weights="imagenet",
-                encoder_freeze=True,
+                encoder_freeze=False,
                 activation="linear",
                 classes=n_classes,
                 decoder_use_batchnorm=False,
             )
             self.preprocessing = RescalingUnet()
+            # self.preprocessing = sm.get_preprocessing('efficientnetb0')
 
         def unfreeze_backbone(self):
             for layer in self.model.layers:
                 layer.trainable = True
 
         def call(self, images, training=False):
-            ppreprocess_input = self.preprocessing(images)
-            return self.model(ppreprocess_input, training)
+            preprocess_input = self.preprocessing(images)
+            return self.model(preprocess_input, training)
 
     class FCN(tf.keras.Model):
         def __init__(self, n_classes=8, backbone=None, **kwargs):
@@ -269,7 +276,7 @@ class SingleModel:
 class MultiModel:
     # FPN + UNET
     class FpnUnetProduct(tf.keras.Model):
-        def __init__(self, n_class=8):
+        def __init__(self, n_class=8, freeze_backbone=True):
             super().__init__(name="Fpn_Unet_Product")
 
             self.fpn = SingleModel.FPN(n_class)
@@ -277,7 +284,8 @@ class MultiModel:
             self.conv1x1 = tf.keras.layers.Conv2D(n_class, 1, padding="same")
 
             # Fpn is frozen first
-            self.fpn.freeze_backbone()
+            if freeze_backbone:
+                self.fpn.freeze_backbone()
 
         def freeze_backbone(self):
             self.fpn.freeze_backbone()
@@ -293,7 +301,7 @@ class MultiModel:
             return output_final
 
     class FpnUnetSummation(tf.keras.Model):
-        def __init__(self, n_class=8):
+        def __init__(self, n_class=8, freeze_backbone=True):
             super().__init__(name="Fpn_Unet_Summation")
 
             self.fpn = SingleModel.FPN(n_class)
@@ -301,7 +309,8 @@ class MultiModel:
             self.conv1x1 = tf.keras.layers.Conv2D(n_class, 1, padding="same")
 
             # Fpn is frozen first
-            self.fpn.freeze_backbone()
+            if freeze_backbone:
+                self.fpn.freeze_backbone()
 
         def unfreeze_backbone(self):
             self.fpn.freeze_backbone()
@@ -315,7 +324,7 @@ class MultiModel:
             return output_final
 
     class FpnUnetConcatenation(tf.keras.Model):
-        def __init__(self, n_class=8):
+        def __init__(self, n_class=8, freeze_backbone=True):
             super().__init__(name="Fpn_Unet_Concatenation")
 
             self.fpn = SingleModel.FPN(n_class)
@@ -324,7 +333,8 @@ class MultiModel:
             self.concatenation = tf.keras.layers.Concatenate()
 
             # Fpn is frozen first
-            self.fpn.freeze_backbone()
+            if freeze_backbone:
+                self.fpn.freeze_backbone()
 
         def unfreeze_backbone(self):
             self.fpn.freeze_backbone()

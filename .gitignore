@@ -13,3 +13,4 @@ savedmodel
 *train
 .vscode
 data/
+*.DS_STORE

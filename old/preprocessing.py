@@ -140,7 +140,7 @@ class UavidDataset:
             (1136, 2160, 1792, 3840),
         ]
 
-        for y_min, y_max, x_min, x_max in blocks:
+        for y_min, _, x_min, _ in blocks:
             for index in range(8):
                 y, x = index // 4, index % 4
                 block_y_min = y_min + (y * 512)

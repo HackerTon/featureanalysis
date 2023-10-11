@@ -12,3 +12,4 @@ savedmodel
 *test
 *train
 .vscode
+data/

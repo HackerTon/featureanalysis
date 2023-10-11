@@ -1,0 +1,64 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>NeuralNGin</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    {% tailwind_css %}
+  </head>
+
+  <body class="overflow-x-hidden">
+    {% include "header.html" %}
+    <!-- main grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 pt-10 lg:pt-0 mt-10">
+      <!-- image input -->
+      <div class="grid grid-cols-1 place-items-center">
+        <div>
+          <div
+            class="h-[50vh] w-[50vh] md:h-[70vh] md:w-[70vh] bg-green-300 rounded-lg p-5"
+          >
+            <img
+              id="thisimg"
+              class="object-contain h-full w-full rounded-lg"
+              src="{{ inputimage }}"
+              alt="image"
+            />
+          </div>
+        </div>
+        <h1 class="font-bold text-4xl pt-5">Input Image</h1>
+      </div>
+
+      <!-- output input -->
+      <div class="grid grid-cols-1 place-items-center">
+        <div>
+          <div
+            class="h-[50vh] w-[50vh] md:h-[70vh] md:w-[70vh] bg-yellow-300 rounded-lg p-5"
+          >
+            <img
+              id="thisimg"
+              class="object-contain h-full w-full rounded-lg"
+              src="{{ outputimage }}"
+              alt="image"
+            />
+          </div>
+        </div>
+        <h1 class="font-bold text-4xl pt-5">Output Prediction {{ type }}</h1>
+      </div>
+    </div>
+
+    <!-- footer -->
+    <div
+      class="grid place-items-center w-screen h-20 bg-gray-900 md:mt-10 md:relative absolute left-0 bottom-0"
+    >
+      <div class="text-white font-mono block">
+        NeuralNGin was made using
+        <a href="#" class="hover:text-blue-700">Django 😊</a> &
+        <a href="#" class="hover:text-blue-700">Tensorflow 🤓</a>
+      </div>
+    </div>
+
+    <!-- <script src="{% static 'js/main.js' %}"></script> -->
+  </body>
+</html>

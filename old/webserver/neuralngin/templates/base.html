@@ -1,0 +1,90 @@
+{% load static tailwind_tags %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>NeuralNGin</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    {% tailwind_css %}
+  </head>
+
+  <body>
+    {% include "header.html" %}
+    <!-- main grid -->
+    <form
+      method="post"
+      enctype="multipart/form-data"
+      class="grid grid-cols-1 pt-10 lg:pt-0 lg:grid-cols-2"
+    >
+      {% csrf_token %}
+
+      <!-- image input -->
+      <div class="grid grid-cols-1 place-items-center">
+        <div
+          id="box"
+          class="h-[50vh] w-[50vh] md:h-[70vh] md:w-[70vh] bg-green-300 rounded-lg"
+        >
+          {% load static %}
+          <img
+            id="thisimg"
+            class="object-contain h-full w-full p-5"
+            alt="image"
+          />
+        </div>
+      </div>
+
+      <!-- right form -->
+      <div class="text-xl self-center">
+        <!-- combo -->
+        <div class="mini-box bg-blue-300">
+          <div class="inline-block border-b-4 border-white">
+            <p class="text-5xl font-medium">STEP 1</p>
+            <p class="pt-2">Description about the first instruction</p>
+          </div>
+          <label
+            for="{{ image.id_for_label }}"
+            class="cute-button mt-20 w-52 text-center"
+            >INSERT IMAGE</label
+          >
+          {{ image }}
+        </div>
+
+        <!-- neural network combo -->
+        <div class="mini-box bg-red-300">
+          <div class="inline-block border-b-4 border-white">
+            <p class="text-5xl font-medium">STEP 2</p>
+            <p class="pt-2">This is the second</p>
+          </div>
+          <div class="mt-20 mb-3 font-mono">{{ model }}</div>
+          <button class="cute-button" type="submit">SUBMIT</button>
+        </div>
+
+        <!-- neural network combo -->
+        <div class="mini-box bg-red-300">
+          <div class="inline-block border-b-4 border-white">
+            <p class="text-5xl font-medium">STEP 3</p>
+            <p class="pt-2">This is the third</p>
+          </div>
+          <div class="mt-20 mb-3 font-mono">{{ infclass }}</div>
+          <button class="cute-button" type="submit">SUBMIT</button>
+        </div>
+      </div>
+    </form>
+    {% include 'footer.html' %}
+    <script>
+      function readURL(input) {
+        if (input.files && input.files[0]) {
+          var reader = new FileReader();
+          reader.onload = function (e) {
+            var imgelement = document.getElementById("thisimg");
+            imgelement.src = e.target.result;
+          };
+
+          reader.readAsDataURL(input.files[0]);
+        }
+      }
+    </script>
+    <!-- <script src="{% static 'js/main.js' %}"></script> -->
+  </body>
+</html>

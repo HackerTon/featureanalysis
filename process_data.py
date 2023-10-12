@@ -83,9 +83,9 @@ class DatasetProcessor:
         index = path.name.replace(r".png", "")
         number_string = str(number)
         return (
-            f"{folder_name}_{index}_0{str(number_string)}.png"
+            f"{folder_name}_{index}_0{str(number_string)}.jpg"
             if len(number_string) == 1
-            else f"{folder_name}_{index}_{str(number_string)}.png"
+            else f"{folder_name}_{index}_{str(number_string)}.jpg"
         )
 
     @staticmethod

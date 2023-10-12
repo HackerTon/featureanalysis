@@ -14,3 +14,4 @@ savedmodel
 .vscode
 data/
 *.DS_STORE
+__pycache__

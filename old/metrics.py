@@ -12,6 +12,7 @@ def jindex_class(target, pred):
     union = tf.reduce_sum(target + pred, axis=[1, 2]) - intersection
     return (intersection + 1e-9) / (union + 1e-9)
 
+# Reformulate the dice_loss
 
 def dice_coef(target, pred):
     '''

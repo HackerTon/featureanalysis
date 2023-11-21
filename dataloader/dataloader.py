@@ -4,6 +4,20 @@ from torchvision.io import read_image
 from torchvision.transforms import Resize
 from pathlib import Path
 
+from torchvision.transforms import RandomCrop, Resize
+from torchvision.transforms.functional import crop
+
+dataset_labels = [
+    "background",
+    "building",
+    "road",
+    "tree",
+    "vegetation",
+    "moving_car",
+    "stationary_car",
+    "human",
+]
+
 
 class UAVIDDataset4K(Dataset):
     def __init__(self, path, is_train=True):
@@ -78,17 +92,17 @@ class UAVIDDataset(Dataset):
         directory = Path(path)
         if is_train:
             self.images = [
-                str(x.absolute()) for x in directory.glob("train/image/*.jpg")
+                str(x.absolute()) for x in directory.glob("train/image/*.png")
             ]
             self.labels = [
-                str(x.absolute()) for x in directory.glob("train/label/*.jpg")
+                str(x.absolute()) for x in directory.glob("train/label/*.png")
             ]
         else:
             self.images = [
-                str(x.absolute()) for x in directory.glob("test/image/*.jpg")
+                str(x.absolute()) for x in directory.glob("test/image/*.png")
             ]
             self.labels = [
-                str(x.absolute()) for x in directory.glob("test/label/*.jpg")
+                str(x.absolute()) for x in directory.glob("test/label/*.png")
             ]
 
         if len(self.images) != len(self.labels):
@@ -130,10 +144,14 @@ class UAVIDDataset(Dataset):
 
     def __getitem__(self, index):
         image = self.decode_image(self.images[index])
+        i, j, h, w = RandomCrop.get_params(image, (256, 256))
         image = self.image_0and1(image)
-
         label = self.decode_image(self.labels[index])
         label = self.mask_label(label)
         label = self.label_0and1(label)
+
+        # Crop image and label
+        image = crop(image, i, j, h, w)
+        label = crop(label, i, j, h, w)
 
         return image, label

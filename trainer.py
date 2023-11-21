@@ -1,8 +1,11 @@
+import argparse
+import datetime
 import time
 from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import transforms
 from tqdm import tqdm
 
@@ -33,39 +36,40 @@ def total_loss(pred: torch.Tensor, target: torch.Tensor):
     )
 
 
-def train():
+def train(device: str, batch_size: int, path: str):
+    if not Path(path).exists():
+        print(f"Dataset not found in '{path}'")
+        return
+
     training_data = UAVIDDataset(
-        path="/Users/babi/Programs/high_performance_analysis_system/data/processed_dataset/",
+        path=path,
         is_train=True,
     )
     train_dataloader = DataLoader(
         training_data,
-        batch_size=1,
+        batch_size=batch_size,
         shuffle=True,
         pin_memory=True,
     )
-    model = UNETNetwork(numberClass=8).to("mps")
-    optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001)
+    model = UNETNetwork(numberClass=8).to(device)
     optimizer_sgd = torch.optim.SGD(params=model.parameters(), lr=0.001)
-    normalize = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]).to(
-        "mps"
-    )
-
+    normalize = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    normalize = normalize.to(device)
     model_saver = ModelSaverService(path=Path("data/savedmodel"))
+    timestamp = datetime.datetime.now().strftime(r"%Y%m%d_%H%M%S")
+    writer = SummaryWriter("data/training/train_{}".format(timestamp))
 
-    for epoch in range(4):
+    for epoch in range(10):
         model.train(True)
         running_loss = 0.0
         for idx, data in enumerate(tqdm(train_dataloader)):
-            initial_time = time.perf_counter()
             inputs: torch.Tensor
             labels: torch.Tensor
             inputs, labels = data
-            optimizer.zero_grad()
             optimizer_sgd.zero_grad()
 
-            inputs = inputs.to("mps")
-            labels = labels.to("mps")
+            inputs = inputs.to(device)
+            labels = labels.to(device)
 
             inputs = normalize(inputs)
             outputs = model(inputs)
@@ -73,21 +77,28 @@ def train():
             loss = total_loss(outputs, labels)
             loss.backward()
 
-            if epoch == 0:
-                optimizer_sgd.step()
-            else:
-                optimizer.step()
-
+            optimizer_sgd.step()
             running_loss += loss.item()
 
-            if idx % 10 == 9:
-                time_taken = (time.perf_counter() - initial_time) / 10
-                print(
-                    f"Loss: {running_loss / (idx + 1)}, Avg Time Taken: {time_taken}ms"
+            if idx % 500 == 499:
+                current_training_sample = epoch * len(train_dataloader) + idx + 1
+                writer.add_scalar(
+                    "Loss/train", running_loss / 500, current_training_sample
                 )
-
+                print(f"Loss: {running_loss / 500}")
+                running_loss = 0.0
         model_saver.save(model=model, epoch=epoch)
 
 
 if __name__ == "__main__":
-    train()
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument("-m", "--mode", default="cpu", type=str)
+    parser.add_argument("-bs", "--batchsize", default=1, type=int)
+    parser.add_argument("-p", "--path", required=True, type=str)
+
+    parsed_data = parser.parse_args()
+    train(
+        device=parsed_data.mode,
+        batch_size=parsed_data.batchsize,
+        path=parsed_data.path,
+    )

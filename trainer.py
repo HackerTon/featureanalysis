@@ -50,43 +50,47 @@ def train(device: str, batch_size: int, path: str):
         batch_size=batch_size,
         shuffle=True,
         pin_memory=True,
+        num_workers=4,
     )
     model = UNETNetwork(numberClass=8).to(device)
-    optimizer_sgd = torch.optim.SGD(params=model.parameters(), lr=0.001)
+    optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001)
     normalize = transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
     normalize = normalize.to(device)
     model_saver = ModelSaverService(path=Path("data/savedmodel"))
     timestamp = datetime.datetime.now().strftime(r"%Y%m%d_%H%M%S")
     writer = SummaryWriter("data/training/train_{}".format(timestamp))
 
-    for epoch in range(10):
-        model.train(True)
+    model.train(True)
+    number_samples = len(train_dataloader)
+    percentile_10_split = number_samples // 10
+    for epoch in range(80):
         running_loss = 0.0
         for idx, data in enumerate(tqdm(train_dataloader)):
+            optimizer.zero_grad()
+
             inputs: torch.Tensor
             labels: torch.Tensor
             inputs, labels = data
-            optimizer_sgd.zero_grad()
 
             inputs = inputs.to(device)
             labels = labels.to(device)
-
             inputs = normalize(inputs)
             outputs = model(inputs)
-
             loss = total_loss(outputs, labels)
             loss.backward()
-
-            optimizer_sgd.step()
+            optimizer.step()
+            
             running_loss += loss.item()
-
-            if idx % 500 == 499:
+            if idx % percentile_10_split == percentile_10_split - 1:
                 current_training_sample = epoch * len(train_dataloader) + idx + 1
                 writer.add_scalar(
-                    "Loss/train", running_loss / 500, current_training_sample
+                    "Loss/train",
+                    running_loss / percentile_10_split,
+                    current_training_sample,
                 )
-                print(f"Loss: {running_loss / 500}")
+                print(f"Loss: {running_loss / percentile_10_split}")
                 running_loss = 0.0
+
         model_saver.save(model=model, epoch=epoch)
 
 

@@ -2,7 +2,7 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 from torchvision.io import encode_jpeg, read_image
-from torchvision.transforms import Resize
+from torchvision.transforms.functional import resize, InterpolationMode
 from tqdm import tqdm
 
 
@@ -43,8 +43,12 @@ class DatasetProcessor:
 
     @staticmethod
     def resize_image(image):
-        resizer = Resize([2160, 3840], antialias="True")
-        return resizer(image)
+        return resize(
+            image,
+            size=[2160, 3840],
+            interpolation=InterpolationMode.BICUBIC,
+            antialias=True,
+        )
 
     @staticmethod
     def crop_256(image, label):
@@ -63,12 +67,12 @@ class DatasetProcessor:
             (1136, 2160, 1792, 3840),
         ]
         for y_min, _, x_min, _ in blocks:
-            for index in range(8):
-                y, x = index // 4, index % 4
-                block_y_min = y_min + (y * 512)
-                block_y_max = y_min + (y + 1) * 512
-                block_x_min = x_min + x * 512
-                block_x_max = x_min + (x + 1) * 512
+            for index in range(16):
+                y, x = index // 8, index % 8
+                block_y_min = y_min + (y * 256)
+                block_y_max = y_min + (y + 1) * 256
+                block_x_min = x_min + x * 256
+                block_x_max = x_min + (x + 1) * 256
                 img_array.append(
                     image[::, block_y_min:block_y_max, block_x_min:block_x_max]
                 )
@@ -157,4 +161,6 @@ def process_images(path):
 
 
 if __name__ == "__main__":
-    process_images(path="data/uavid_v1.5_official_release_image/")
+    process_images(
+        path="../high_performance_analysis_system/data/uavid_v1.5_official_release_image/"
+    )

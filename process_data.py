@@ -1,8 +1,9 @@
+import argparse
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 from torchvision.io import encode_jpeg, read_image
-from torchvision.transforms.functional import resize, InterpolationMode
+from torchvision.transforms.functional import InterpolationMode, resize
 from tqdm import tqdm
 
 
@@ -161,6 +162,12 @@ def process_images(path):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-p", "--path", required=True, help='path to uavid directory')
+
+    parsed: argparse.Namespace =  parser.parse_args()
+
     process_images(
-        path="../high_performance_analysis_system/data/uavid_v1.5_official_release_image/"
+        # path="../high_performance_analysis_system/data/uavid_v1.5_official_release_image/"
+        path=parsed.path
     )

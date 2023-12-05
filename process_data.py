@@ -2,7 +2,7 @@ import argparse
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
-from torchvision.io import encode_jpeg, read_image
+from torchvision.io import encode_png, read_image
 from torchvision.transforms.functional import InterpolationMode, resize
 from tqdm import tqdm
 
@@ -40,7 +40,7 @@ class DatasetProcessor:
 
     @staticmethod
     def encode_image(image):
-        return encode_jpeg(image)
+        return encode_png(image)
 
     @staticmethod
     def resize_image(image):
@@ -89,9 +89,9 @@ class DatasetProcessor:
         index = path.name.replace(r".png", "")
         number_string = str(number)
         return (
-            f"{folder_name}_{index}_0{str(number_string)}.jpg"
+            f"{folder_name}_{index}_0{str(number_string)}.png"
             if len(number_string) == 1
-            else f"{folder_name}_{index}_{str(number_string)}.jpg"
+            else f"{folder_name}_{index}_{str(number_string)}.png"
         )
 
     @staticmethod
@@ -163,11 +163,6 @@ def process_images(path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--path", required=True, help='path to uavid directory')
-
-    parsed: argparse.Namespace =  parser.parse_args()
-
-    process_images(
-        # path="../high_performance_analysis_system/data/uavid_v1.5_official_release_image/"
-        path=parsed.path
-    )
+    parser.add_argument("-p", "--path", required=True, help="path to uavid directory")
+    parsed: argparse.Namespace = parser.parse_args()
+    process_images(path=parsed.path)

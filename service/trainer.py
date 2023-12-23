@@ -59,7 +59,7 @@ class Trainer:
                 last_loss = running_loss / self.train_report_rate
                 current_training_sample = epoch * len(dataloader) + index + 1
                 self.writer_train.add_scalar(
-                    "Loss/train",
+                    "loss/train",
                     last_loss,
                     current_training_sample,
                 )

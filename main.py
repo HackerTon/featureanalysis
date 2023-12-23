@@ -12,9 +12,10 @@ def run(device: str, batch_size: int, path: str):
 
     trainer = Trainer(5)
     hyperparameter = Hyperparameter(
+        epoch=10,
         learning_rate=0.001,
-        batch_size_test=32,
-        batch_size_train=16,
+        batch_size_test=batch_size * 2,
+        batch_size_train=batch_size,
         data_path=path,
     )
     trainer.run_trainer(device=device, hyperparameter=hyperparameter)

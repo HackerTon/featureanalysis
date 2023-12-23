@@ -37,7 +37,6 @@ class Trainer:
         device: torch.device,
     ):
         running_loss = 0.0
-
         for index, data in enumerate(dataloader):
             inputs: torch.Tensor
             labels: torch.Tensor
@@ -71,10 +70,30 @@ class Trainer:
         epoch: int,
         model: torch.nn.Module,
         dataloader: DataLoader,
+        preprocess,
         loss_fn,
         device: torch.device,
+        train_dataset_length: int,
     ):
-        pass
+        sum_loss = 0.0
+        with torch.no_grad():
+            for data in dataloader:
+                inputs: torch.Tensor
+                labels: torch.Tensor
+                inputs, labels = data
+
+                inputs = inputs.to(device)
+                labels = labels.to(device)
+
+                inputs = preprocess(inputs)
+                outputs = model(inputs)
+                loss = loss_fn(outputs, labels)
+
+                sum_loss += loss.item()
+
+        iteration = (epoch + 1) * train_dataset_length
+        avg_loss = sum_loss / len(dataloader)
+        self.writer_test.add_scalar("loss/test", avg_loss, iteration)
 
     def train(
         self,
@@ -103,7 +122,9 @@ class Trainer:
                 model=model,
                 dataloader=dataloader_test,
                 loss_fn=loss_fn,
+                preprocess=preprocess,
                 device=device,
+                train_dataset_length=len(dataloader_train),
             )
             self._save(model=model, epoch=epoch)
 
@@ -130,7 +151,7 @@ class Trainer:
 
         # Run
         self.train(
-            epochs=5,
+            epochs=hyperparameter.epoch,
             model=model,
             dataloader_train=train_dataloader,
             dataloader_test=test_dataloader,

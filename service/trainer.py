@@ -7,14 +7,19 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
 
 from dataloader.dataloader import UAVIDDataset
+from loss import dice_index, dice_index_per_channel, total_loss
 from model.model import UNETNetwork
+from service.hyperparamater import Hyperparameter
 from service.model_saver_service import ModelSaverService
 
 
 class Trainer:
     def __init__(self, train_report_rate=1000) -> None:
         timestamp = datetime.now().strftime(r"%Y%m%d_%H%M%S")
-        self.writer = SummaryWriter("log/training/train_{}".format(timestamp))
+        self.writer_train = SummaryWriter(
+            "data/log/training/train_{}".format(timestamp)
+        )
+        self.writer_test = SummaryWriter("data/log/training/test_{}".format(timestamp))
         self.model_saver = ModelSaverService(path=Path("data/model"), topk=2)
         self.train_report_rate = train_report_rate
 
@@ -29,14 +34,11 @@ class Trainer:
         optimizer: torch.optim.Optimizer,
         loss_fn,
         preprocess,
-        device="cpu",
+        device: torch.device,
     ):
         running_loss = 0.0
 
-        # Move model to specified device
-        model = model.to(device)
-
-        for i, data in enumerate(dataloader):
+        for index, data in enumerate(dataloader):
             inputs: torch.Tensor
             labels: torch.Tensor
             inputs, labels = data
@@ -54,10 +56,14 @@ class Trainer:
             optimizer.step()
             running_loss += loss.item()
 
-            if i % self.train_report_rate == (self.train_report_rate - 1):
+            if index % self.train_report_rate == (self.train_report_rate - 1):
                 last_loss = running_loss / self.train_report_rate
-                current_training_sample = epoch * len(dataloader) + i + 1
-                self.writer.add_scalar("Loss/train", last_loss, current_training_sample)
+                current_training_sample = epoch * len(dataloader) + index + 1
+                self.writer_train.add_scalar(
+                    "Loss/train",
+                    last_loss,
+                    current_training_sample,
+                )
                 running_loss = 0.0
 
     def _eval_one_epoch(
@@ -65,9 +71,8 @@ class Trainer:
         epoch: int,
         model: torch.nn.Module,
         dataloader: DataLoader,
-        optimizer: torch.optim.Optimizer,
         loss_fn,
-        mode="cpu",
+        device: torch.device,
     ):
         pass
 
@@ -75,48 +80,90 @@ class Trainer:
         self,
         epochs: int,
         model: torch.nn.Module,
-        dataloader: DataLoader,
+        dataloader_train: DataLoader,
+        dataloader_test: DataLoader,
         optimizer: torch.optim.Optimizer,
         loss_fn,
         preprocess,
-        device="cpu",
+        device=torch.device("cpu"),
     ):
         for epoch in range(epochs):
+            print(f"Training epoch {epoch + 1}")
             self._train_one_epoch(
                 epoch=epoch,
                 model=model,
-                dataloader=dataloader,
+                dataloader=dataloader_train,
                 optimizer=optimizer,
                 loss_fn=loss_fn,
                 preprocess=preprocess,
                 device=device,
             )
+            self._eval_one_epoch(
+                epoch=epoch,
+                model=model,
+                dataloader=dataloader_test,
+                loss_fn=loss_fn,
+                device=device,
+            )
             self._save(model=model, epoch=epoch)
 
-    def run_trainer(self, device):
-        training_data = UAVIDDataset(path="data/processed_dataset/", is_train=True)
-        train_dataloader = DataLoader(training_data, batch_size=64, shuffle=True)
+    def run_trainer(self, device, hyperparameter: Hyperparameter):
+        # Initialization
+        train_dataloader = create_train_dataloader(
+            path=hyperparameter.data_path,
+            batch_size=hyperparameter.batch_size_train,
+        )
+        test_dataloader = create_test_dataloader(
+            path=hyperparameter.data_path,
+            batch_size=hyperparameter.batch_size_test,
+        )
         model = UNETNetwork(numberClass=8)
-        optimizer = torch.optim.Adam(params=model.parameters(), lr=0.001)
-
-        def dice_loss(pred: torch.Tensor, target: torch.Tensor):
-            pred_flat = pred.flatten()
-            target_flat = target.flatten()
-            nominator = 2 * torch.mul(pred_flat, target_flat)
-            denominator = torch.add(pred_flat, target_flat)
-            return 1 - torch.mean((nominator + 1e-9) / (denominator + 1e-9))
-
-        def total_loss(pred: torch.Tensor, target: torch.Tensor):
-            return torch.nn.functional.cross_entropy(pred, target) + dice_loss(
-                pred.softmax(1), target
-            )
+        optimizer = torch.optim.Adam(
+            params=model.parameters(),
+            lr=hyperparameter.learning_rate,
+        )
         preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
+        # Move weights to specified device
+        model = model.to(device)
+        preprocess = preprocess.to(device)
+
+        # Run
         self.train(
             epochs=5,
             model=model,
-            dataloader=train_dataloader,
+            dataloader_train=train_dataloader,
+            dataloader_test=test_dataloader,
             optimizer=optimizer,
             loss_fn=total_loss,
             preprocess=preprocess,
             device=device,
         )
+
+
+def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
+    training_data = UAVIDDataset(
+        path=path,
+        is_train=True,
+    )
+    train_dataloader = DataLoader(
+        training_data,
+        batch_size=batch_size,
+        shuffle=True,
+        pin_memory=True,
+        num_workers=4,
+    )
+    return train_dataloader
+
+
+def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
+    test_data = UAVIDDataset(
+        path=path,
+        is_train=False,
+    )
+    test_dataloader = DataLoader(
+        test_data,
+        batch_size=batch_size,
+        num_workers=4,
+    )
+    return test_dataloader

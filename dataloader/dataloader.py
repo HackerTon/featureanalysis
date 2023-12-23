@@ -7,19 +7,19 @@ from pathlib import Path
 from torchvision.transforms import RandomCrop, Resize
 from torchvision.transforms.functional import crop
 
-dataset_labels = [
-    "background",
-    "building",
-    "road",
-    "tree",
-    "vegetation",
-    "moving_car",
-    "stationary_car",
-    "human",
-]
-
 
 class UAVIDDataset4K(Dataset):
+    dataset_labels = [
+        "background",
+        "building",
+        "road",
+        "tree",
+        "vegetation",
+        "moving_car",
+        "stationary_car",
+        "human",
+    ]
+
     def __init__(self, path, is_train=True):
         directory = Path(path)
         if is_train:
@@ -88,6 +88,17 @@ class UAVIDDataset4K(Dataset):
 
 
 class UAVIDDataset(Dataset):
+    dataset_labels = [
+        "background",
+        "building",
+        "road",
+        "tree",
+        "vegetation",
+        "moving_car",
+        "stationary_car",
+        "human",
+    ]
+
     def __init__(self, path, is_train=True):
         directory = Path(path)
         if is_train:

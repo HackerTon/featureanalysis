@@ -59,7 +59,7 @@ class Trainer:
                 last_loss = running_loss / self.train_report_rate
                 current_training_sample = epoch * len(dataloader) + index + 1
                 self.writer_train.add_scalar(
-                    "loss/train",
+                    "loss",
                     last_loss,
                     current_training_sample,
                 )
@@ -93,7 +93,7 @@ class Trainer:
 
         iteration = (epoch + 1) * train_dataset_length
         avg_loss = sum_loss / len(dataloader)
-        self.writer_test.add_scalar("loss/test", avg_loss, iteration)
+        self.writer_test.add_scalar("loss", avg_loss, iteration)
 
     def train(
         self,

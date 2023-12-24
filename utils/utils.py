@@ -6,13 +6,13 @@ from dataloader.dataloader import UAVIDDataset
 
 
 def combine_channels(image: torch.Tensor, colors: np.ndarray, is_predict: bool):
-    _, _, h, w = image.shape
-    output_image = np.zeros([h, w, 3], dtype=np.uint8)
+    _, h, w = image.shape
+    output_image = torch.zeros([h, w, 3], dtype=torch.uint8)
     for i in range(colors.shape[0]):
         if is_predict:
-            mask = image[0, i] > 0.5
+            mask = image[i] > 0.5
         else:
-            mask = image[0, i] == 1
+            mask = image[i] == 1
         output_image[mask] = colors[i]
     return output_image
 

@@ -208,7 +208,7 @@ class Trainer:
                 grouth_truth_image = grouth_truth_image[..., [2, 1, 0]].cpu()
                 predicted_image = combine_channels(outputs[0], colors, True)
                 predicted_image = predicted_image[..., [2, 1, 0]].cpu()
-                input_image = torch.permute(inputs[0], [1, 2, 0]).cpu()
+                input_image = torch.permute(data[0][0], [1, 2, 0])
 
                 iteration = (epoch + 1) * train_dataset_length
                 self.writer_test.add_images(

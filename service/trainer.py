@@ -1,6 +1,5 @@
 from datetime import datetime
 from pathlib import Path
-import numpy as np
 
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -9,7 +8,7 @@ from torchvision.transforms import Normalize
 
 from dataloader.dataloader import UAVIDDataset
 from loss import dice_index, dice_index_per_channel, total_loss
-from model.model import UNETNetwork
+from model.model import UNETNetwork, FPNNetwork
 from service.hyperparamater import Hyperparameter
 from service.model_saver_service import ModelSaverService
 from utils.utils import combine_channels, visualize
@@ -35,7 +34,7 @@ class Trainer:
             path=hyperparameter.data_path,
             batch_size=hyperparameter.batch_size_test,
         )
-        model = UNETNetwork(numberClass=8)
+        model = FPNNetwork(numberClass=8)
         optimizer = torch.optim.Adam(
             params=model.parameters(),
             lr=hyperparameter.learning_rate,

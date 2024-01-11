@@ -10,7 +10,7 @@ def run(epoch: int, device: str, batch_size: int, path: str):
         print(f"Dataset not found in '{path}'")
         return
 
-    trainer = Trainer(5)
+    trainer = Trainer(train_report_rate=5)
     hyperparameter = Hyperparameter(
         epoch=epoch,
         learning_rate=0.001,

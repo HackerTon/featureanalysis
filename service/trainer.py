@@ -34,7 +34,7 @@ class Trainer:
             path=hyperparameter.data_path,
             batch_size=hyperparameter.batch_size_test,
         )
-        model = FPNNetwork(numberClass=8)
+        model = UNETNetwork(numberClass=8)
         optimizer = torch.optim.Adam(
             params=model.parameters(),
             lr=hyperparameter.learning_rate,

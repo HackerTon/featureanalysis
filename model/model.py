@@ -70,9 +70,11 @@ class FPNNetwork(nn.Module):
                 "layer4": "feat5",
             },
         )
-        # # Freeze backbone
-        # for param in self.backbone.parameters():
-        #     param.requires_grad = False
+        
+        # Freeze backbone
+        for param in self.backbone.parameters():
+            param.requires_grad = False
+
         self.upsampling_2x_bilinear = nn.UpsamplingBilinear2d(scale_factor=2)
         self.upsampling_4x_bilinear = nn.UpsamplingBilinear2d(scale_factor=4)
         self.upsampling_8x_bilinear = nn.UpsamplingBilinear2d(scale_factor=8)

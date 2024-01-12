@@ -24,38 +24,75 @@ class Trainer:
         self.model_saver = ModelSaverService(path=Path("data/model"), topk=2)
         self.train_report_rate = train_report_rate
 
-    def run_trainer(self, device, hyperparameter: Hyperparameter):
-        # Initialization
-        train_dataloader = create_train_dataloader(
-            path=hyperparameter.data_path,
-            batch_size=hyperparameter.batch_size_train,
-        )
-        test_dataloader = create_test_dataloader(
-            path=hyperparameter.data_path,
-            batch_size=hyperparameter.batch_size_test,
-        )
-        model = UNETNetwork(numberClass=8)
-        optimizer = torch.optim.Adam(
-            params=model.parameters(),
-            lr=hyperparameter.learning_rate,
-        )
-        preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    def run_trainer(
+        self, device: str, hyperparameter: Hyperparameter, experiment_num: int
+    ):
+        if experiment_num == 1:
+            # Initialization
+            train_dataloader = create_train_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_train,
+            )
+            test_dataloader = create_test_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_test,
+            )
+            model = UNETNetwork(numberClass=8)
+            optimizer = torch.optim.Adam(
+                params=model.parameters(),
+                lr=hyperparameter.learning_rate,
+            )
+            preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
-        # Move weights to specified device
-        model = model.to(device)
-        preprocess = preprocess.to(device)
+            # Move weights to specified device
+            model = model.to(device)
+            preprocess = preprocess.to(device)
 
-        # Run
-        self.train(
-            epochs=hyperparameter.epoch,
-            model=model,
-            dataloader_train=train_dataloader,
-            dataloader_test=test_dataloader,
-            optimizer=optimizer,
-            loss_fn=total_loss,
-            preprocess=preprocess,
-            device=device,
-        )
+            # Run
+            self.train(
+                epochs=hyperparameter.epoch,
+                model=model,
+                dataloader_train=train_dataloader,
+                dataloader_test=test_dataloader,
+                optimizer=optimizer,
+                loss_fn=total_loss,
+                preprocess=preprocess,
+                device=device,
+            )
+        elif experiment_num == 2:
+            # Initialization
+            train_dataloader = create_train_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_train,
+            )
+            test_dataloader = create_test_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_test,
+            )
+            model = FPNNetwork(numberClass=8)
+            optimizer = torch.optim.Adam(
+                params=model.parameters(),
+                lr=hyperparameter.learning_rate,
+            )
+            preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
+            # Move weights to specified device
+            model = model.to(device)
+            preprocess = preprocess.to(device)
+
+            # Run
+            self.train(
+                epochs=hyperparameter.epoch,
+                model=model,
+                dataloader_train=train_dataloader,
+                dataloader_test=test_dataloader,
+                optimizer=optimizer,
+                loss_fn=total_loss,
+                preprocess=preprocess,
+                device=device,
+            )
+        else:
+            print(f"Your experiment number ({experiment_num}) not found")
 
     def train(
         self,

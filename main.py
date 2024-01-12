@@ -5,7 +5,7 @@ from service.hyperparamater import Hyperparameter
 from service.trainer import Trainer
 
 
-def run(epoch: int, device: str, batch_size: int, path: str):
+def run(epoch: int, device: str, batch_size: int, path: str, experient_num: int):
     if not Path(path).exists():
         print(f"Dataset not found in '{path}'")
         return
@@ -18,7 +18,11 @@ def run(epoch: int, device: str, batch_size: int, path: str):
         batch_size_train=batch_size,
         data_path=path,
     )
-    trainer.run_trainer(device=device, hyperparameter=hyperparameter)
+    trainer.run_trainer(
+        device=device,
+        hyperparameter=hyperparameter,
+        experiment_num=experient_num,
+    )
 
 
 if __name__ == "__main__":
@@ -27,6 +31,13 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--mode", default="cpu", type=str)
     parser.add_argument("-bs", "--batchsize", default=1, type=int)
     parser.add_argument("-p", "--path", required=True, type=str)
+    parser.add_argument(
+        "-x",
+        "--experiment",
+        required=True,
+        type=int,
+        help="Experiment number. Refer to run_trainer function",
+    )
 
     parsed_data = parser.parse_args()
     run(
@@ -34,4 +45,5 @@ if __name__ == "__main__":
         device=parsed_data.mode,
         batch_size=parsed_data.batchsize,
         path=parsed_data.path,
+        experient_num=parsed_data.experiment,
     )

@@ -79,7 +79,7 @@ class FPNNetwork(nn.Module):
         self.upsampling_4x_bilinear = nn.UpsamplingBilinear2d(scale_factor=4)
         self.upsampling_8x_bilinear = nn.UpsamplingBilinear2d(scale_factor=8)
         self.conv5_1x1 = nn.Conv2d(
-            in_channels=1024,
+            in_channels=2048,
             out_channels=256,
             kernel_size=1,
         )
@@ -96,7 +96,7 @@ class FPNNetwork(nn.Module):
             padding=1,
         )
         self.conv4_1x1 = nn.Conv2d(
-            in_channels=512,
+            in_channels=1024,
             out_channels=256,
             kernel_size=1,
         )
@@ -113,7 +113,7 @@ class FPNNetwork(nn.Module):
             padding=1,
         )
         self.conv3_1x1 = nn.Conv2d(
-            in_channels=256,
+            in_channels=512,
             out_channels=256,
             kernel_size=1,
         )
@@ -130,7 +130,7 @@ class FPNNetwork(nn.Module):
             padding=1,
         )
         self.conv2_1x1 = nn.Conv2d(
-            in_channels=64,
+            in_channels=256,
             out_channels=256,
             kernel_size=1,
         )

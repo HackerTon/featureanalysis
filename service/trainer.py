@@ -8,7 +8,7 @@ from torchvision.transforms import Normalize
 
 from dataloader.dataloader import UAVIDDataset
 from loss import dice_index, dice_index_per_channel, total_loss
-from model.model import UNETNetwork, FPNNetwork
+from model.model import FPNNetwork, UNETNetwork
 from service.hyperparamater import Hyperparameter
 from service.model_saver_service import ModelSaverService
 from utils.utils import combine_channels, visualize

@@ -127,10 +127,10 @@ class UAVIDDataset(Dataset):
     def decode_image(image_path):
         return read_image(image_path)
 
-    @staticmethod
-    def resize_image(image):
-        resizer = Resize([2160, 3840], antialias="True")
-        return resizer(image)
+    # @staticmethod
+    # def resize_image(image):
+    #     resizer = Resize([2160, 3840], antialias="True")
+    #     return resizer(image)
 
     @staticmethod
     def label_0and1(label):
@@ -155,14 +155,14 @@ class UAVIDDataset(Dataset):
 
     def __getitem__(self, index):
         image = self.decode_image(self.images[index])
-        i, j, h, w = RandomCrop.get_params(image, (256, 256))
+        # i, j, h, w = RandomCrop.get_params(image, (256, 256))
         image = self.image_0and1(image)
         label = self.decode_image(self.labels[index])
         label = self.mask_label(label)
         label = self.label_0and1(label)
 
-        # Crop image and label
-        image = crop(image, i, j, h, w)
-        label = crop(label, i, j, h, w)
+        # # Crop image and label
+        # image = crop(image, i, j, h, w)
+        # label = crop(label, i, j, h, w)
 
         return image, label

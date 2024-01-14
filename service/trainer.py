@@ -108,7 +108,7 @@ class Trainer:
         for epoch in range(epochs):
             print(f"Training epoch {epoch + 1}")
 
-            if epoch == 5:
+            if epoch == 4:
                 # Unfreeze backbone
                 model: FPNNetwork = model
                 for parameter in model.backbone.parameters():

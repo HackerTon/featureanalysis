@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import resnet50, ResNet50_Weights, resnet34, ResNet34_Weights
 from torchvision.models.feature_extraction import create_feature_extractor
 
 
@@ -59,17 +59,21 @@ class UNETNetwork(nn.Module):
 class FPNNetwork(nn.Module):
     def __init__(self, numberClass):
         super().__init__()
-        _resnet50 = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        _resnet50 = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1)
         self.backbone = create_feature_extractor(
             _resnet50,
             {
-                "relu": "feat1",
+                # "relu": "feat1",
                 "layer1": "feat2",
                 "layer2": "feat3",
                 "layer3": "feat4",
                 "layer4": "feat5",
             },
         )
+
+        with torch.no_grad():
+            outputs_prediction = self.backbone(torch.rand([1, 3, 256, 256])).values()
+            backbone_dimensions = [output.size(1) for output in outputs_prediction]
 
         # Freeze backbone
         for param in self.backbone.parameters():
@@ -79,7 +83,7 @@ class FPNNetwork(nn.Module):
         self.upsampling_4x_bilinear = nn.UpsamplingBilinear2d(scale_factor=4)
         self.upsampling_8x_bilinear = nn.UpsamplingBilinear2d(scale_factor=8)
         self.conv5_1x1 = nn.Conv2d(
-            in_channels=2048,
+            in_channels=backbone_dimensions[-1],
             out_channels=256,
             kernel_size=1,
         )
@@ -96,7 +100,7 @@ class FPNNetwork(nn.Module):
             padding=1,
         )
         self.conv4_1x1 = nn.Conv2d(
-            in_channels=1024,
+            in_channels=backbone_dimensions[-2],
             out_channels=256,
             kernel_size=1,
         )
@@ -113,7 +117,7 @@ class FPNNetwork(nn.Module):
             padding=1,
         )
         self.conv3_1x1 = nn.Conv2d(
-            in_channels=512,
+            in_channels=backbone_dimensions[-3],
             out_channels=256,
             kernel_size=1,
         )
@@ -130,7 +134,7 @@ class FPNNetwork(nn.Module):
             padding=1,
         )
         self.conv2_1x1 = nn.Conv2d(
-            in_channels=256,
+            in_channels=backbone_dimensions[-4],
             out_channels=256,
             kernel_size=1,
         )

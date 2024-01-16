@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+import time
 
 import torch
 from torch.utils.data.dataloader import DataLoader
@@ -106,7 +107,7 @@ class Trainer:
         device=torch.device("cpu"),
     ):
         for epoch in range(epochs):
-            print(f"Training epoch {epoch + 1}")
+            print(f"Training epoch {epoch + 1}, ", end="")
 
             if epoch == 4:
                 # Unfreeze backbone
@@ -114,6 +115,7 @@ class Trainer:
                 for parameter in model.backbone.parameters():
                     parameter.requires_grad = True
 
+            initial_time = time.time()
             self._train_one_epoch(
                 epoch=epoch,
                 model=model,
@@ -123,6 +125,10 @@ class Trainer:
                 preprocess=preprocess,
                 device=device,
             )
+            if device == "cuda":
+                torch.cuda.synchronize()
+            time_taken = time.time() - initial_time
+            print(f"time_taken: {time_taken / 1000:.5f}s")
             self._eval_one_epoch(
                 epoch=epoch,
                 model=model,
@@ -161,7 +167,7 @@ class Trainer:
             labels: torch.Tensor
             inputs, labels = data
 
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
             inputs = inputs.to(device)
             labels = labels.to(device)
 
@@ -289,5 +295,6 @@ def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
         test_data,
         batch_size=batch_size,
         num_workers=4,
+        pin_memory=True,
     )
     return test_dataloader

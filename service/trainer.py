@@ -263,7 +263,7 @@ class Trainer:
                 self.writer_test.add_images(
                     tag="images",
                     img_tensor=torch.stack(
-                        [input_image / 255, grouth_truth_image / 255, predicted_image / 255] 
+                        [input_image, grouth_truth_image / 255, predicted_image / 255] 
                     ),
                     global_step=iteration,
                     dataformats="NHWC",

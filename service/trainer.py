@@ -126,7 +126,7 @@ class Trainer:
                 device=device,
             )
             if torch.cuda.is_available():
-                torch.cuda.synchronize()
+                torch.cuda.current_stream().synchronize()
             time_taken = time.time() - initial_time
             print(f"time_taken: {time_taken / 1000:.5f}s")
             self._eval_one_epoch(

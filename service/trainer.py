@@ -109,11 +109,11 @@ class Trainer:
         for epoch in range(epochs):
             print(f"Training epoch {epoch + 1}, ", end="")
 
-            # if epoch == 1:
-            #     # Unfreeze backbone
-            #     model: FPNNetwork = model
-            #     for parameter in model.backbone.parameters():
-            #         parameter.requires_grad = True
+            if epoch == 5:
+                # Unfreeze backbone
+                model: FPNNetwork = model
+                for parameter in model.backbone.parameters():
+                    parameter.requires_grad = True
 
             initial_time = time.time()
             self._train_one_epoch(

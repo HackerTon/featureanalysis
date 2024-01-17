@@ -20,8 +20,8 @@ class UNETNetwork(nn.Module):
         )
 
         # Freeze backbone
-        # for param in self.backbone.parameters():
-        #     param.requires_grad = False
+        for param in self.backbone.parameters():
+            param.requires_grad = False
 
         # self.upsampling_2x = nn.UpsamplingNearest2d(scale_factor=2)
         self.upsampling_2x_bilinear = nn.UpsamplingBilinear2d(scale_factor=2)
@@ -59,9 +59,9 @@ class UNETNetwork(nn.Module):
 class FPNNetwork(nn.Module):
     def __init__(self, numberClass):
         super().__init__()
-        _resnet50 = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1)
+        _resnet34 = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1)
         self.backbone = create_feature_extractor(
-            _resnet50,
+            _resnet34,
             {
                 # "relu": "feat1",
                 "layer1": "feat2",

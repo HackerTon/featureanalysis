@@ -125,7 +125,7 @@ class Trainer:
                 preprocess=preprocess,
                 device=device,
             )
-            if device == "cuda":
+            if torch.cuda.is_available():
                 torch.cuda.synchronize()
             time_taken = time.time() - initial_time
             print(f"time_taken: {time_taken / 1000:.5f}s")
@@ -243,13 +243,13 @@ class Trainer:
                 colors = torch.tensor(
                     [
                         [0, 0, 0],
-                        [128, 0, 0],
+                        [0, 0, 128],
                         [128, 64, 128],
                         [0, 128, 0],
-                        [128, 128, 0],
-                        [64, 0, 128],
+                        [0, 128, 128],
+                        [128, 0, 64],
                         [192, 0, 192],
-                        [0, 0, 128],
+                        [128, 0, 0],
                     ],
                     dtype=torch.uint8,
                 )
@@ -263,7 +263,7 @@ class Trainer:
                 self.writer_test.add_images(
                     tag="images",
                     img_tensor=torch.stack(
-                        [input_image, grouth_truth_image, predicted_image]
+                        [input_image / 255, grouth_truth_image / 255, predicted_image / 255] 
                     ),
                     global_step=iteration,
                     dataformats="NHWC",

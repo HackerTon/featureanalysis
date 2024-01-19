@@ -71,7 +71,7 @@ class Trainer:
                 batch_size=hyperparameter.batch_size_test,
             )
             model = FPNNetwork(numberClass=8)
-            optimizer = torch.optim.Adam(
+            optimizer = torch.optim.SGD(
                 params=model.parameters(),
                 lr=hyperparameter.learning_rate,
             )

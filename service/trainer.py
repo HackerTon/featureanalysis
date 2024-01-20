@@ -9,7 +9,7 @@ from torchvision.transforms import Normalize
 
 from dataloader.dataloader import UAVIDDataset
 from loss import dice_index, dice_index_per_channel, total_loss
-from model.model import FPNNetwork, UNETNetwork
+from model.model import FPNNetwork, UNETNetwork, MultiNet
 from service.hyperparamater import Hyperparameter
 from service.model_saver_service import ModelSaverService
 from utils.utils import combine_channels, visualize
@@ -71,6 +71,38 @@ class Trainer:
                 batch_size=hyperparameter.batch_size_test,
             )
             model = FPNNetwork(numberClass=8)
+            optimizer = torch.optim.SGD(
+                params=model.parameters(),
+                lr=hyperparameter.learning_rate,
+            )
+            preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
+            # Move weights to specified device
+            model = model.to(device)
+            preprocess = preprocess.to(device)
+
+            # Run
+            self.train(
+                epochs=hyperparameter.epoch,
+                model=model,
+                dataloader_train=train_dataloader,
+                dataloader_test=test_dataloader,
+                optimizer=optimizer,
+                loss_fn=total_loss,
+                preprocess=preprocess,
+                device=device,
+            )
+        elif experiment_num == 3:
+            # Initialization
+            train_dataloader = create_train_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_train,
+            )
+            test_dataloader = create_test_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_test,
+            )
+            model = MultiNet(numberClass=8)
             optimizer = torch.optim.SGD(
                 params=model.parameters(),
                 lr=hyperparameter.learning_rate,

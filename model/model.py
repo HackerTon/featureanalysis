@@ -339,17 +339,8 @@ class MultiNet(nn.Module):
         final_prediction_2 = conv2_prediction
 
         return self.upsampling_4x_bilinear(
-            torch.sum(
-                torch.concatenate(
-                    [
-                        final_prediction_5,
-                        final_prediction_4,
-                        final_prediction_3,
-                        final_prediction_2,
-                    ],
-                    dim=1,
-                ),
-                dim=1,
-                keepdim=True,
-            ),
+            final_prediction_5
+            + final_prediction_4
+            + final_prediction_3
+            + final_prediction_2
         )

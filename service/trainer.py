@@ -9,10 +9,11 @@ from torchvision.transforms import Normalize
 
 from dataloader.dataloader import UAVIDDataset
 from loss import dice_index, dice_index_per_channel, total_loss
-from model.model import FPNNetwork, UNETNetwork, MultiNet
+from model.model import FPNNetwork, UNETNetwork, MultiNet, BackboneType
 from service.hyperparamater import Hyperparameter
 from service.model_saver_service import ModelSaverService
 from utils.utils import combine_channels, visualize
+from typing import Union
 
 
 class Trainer:
@@ -102,7 +103,39 @@ class Trainer:
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_test,
             )
-            model = MultiNet(numberClass=8)
+            model = MultiNet(numberClass=8, backboneType=BackboneType.RESNET34)
+            optimizer = torch.optim.SGD(
+                params=model.parameters(),
+                lr=hyperparameter.learning_rate,
+            )
+            preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
+            # Move weights to specified device
+            model = model.to(device)
+            preprocess = preprocess.to(device)
+
+            # Run
+            self.train(
+                epochs=hyperparameter.epoch,
+                model=model,
+                dataloader_train=train_dataloader,
+                dataloader_test=test_dataloader,
+                optimizer=optimizer,
+                loss_fn=total_loss,
+                preprocess=preprocess,
+                device=device,
+            )
+        elif experiment_num == 4:
+            # Initialization
+            train_dataloader = create_train_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_train,
+            )
+            test_dataloader = create_test_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_test,
+            )
+            model = MultiNet(numberClass=8, backboneType=BackboneType.RESNET50)
             optimizer = torch.optim.SGD(
                 params=model.parameters(),
                 lr=hyperparameter.learning_rate,
@@ -136,7 +169,7 @@ class Trainer:
         optimizer: torch.optim.Optimizer,
         loss_fn,
         preprocess,
-        device=torch.device("cpu"),
+        device: Union[torch.device, str],
     ):
         for epoch in range(epochs):
             print(f"Training epoch {epoch + 1}, ", end="")
@@ -257,7 +290,7 @@ class Trainer:
         epoch: int,
         model: torch.nn.Module,
         dataloader: DataLoader,
-        device: torch.device,
+        device: Union[torch.device, str],
         preprocess,
         train_dataset_length: int,
     ):

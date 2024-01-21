@@ -2,6 +2,12 @@ import torch
 from torch import nn
 from torchvision.models import resnet50, ResNet50_Weights, resnet34, ResNet34_Weights
 from torchvision.models.feature_extraction import create_feature_extractor
+from enum import Enum
+
+
+class BackboneType(Enum):
+    RESNET34 = 1
+    RESNET50 = 2
 
 
 class UNETNetwork(nn.Module):
@@ -211,19 +217,35 @@ class FPNNetwork(nn.Module):
 
 
 class MultiNet(nn.Module):
-    def __init__(self, numberClass):
+    def __init__(self, numberClass, backboneType: BackboneType):
         super().__init__()
-        _resnet34 = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1)
-        self.backbone = create_feature_extractor(
-            _resnet34,
-            {
-                # "relu": "feat1",
-                "layer1": "feat2",
-                "layer2": "feat3",
-                "layer3": "feat4",
-                "layer4": "feat5",
-            },
-        )
+
+        if backboneType == BackboneType.RESNET34:
+            backbone = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1)
+            self.backbone = create_feature_extractor(
+                backbone,
+                {
+                    # "relu": "feat1",
+                    "layer1": "feat2",
+                    "layer2": "feat3",
+                    "layer3": "feat4",
+                    "layer4": "feat5",
+                },
+            )
+        elif backboneType == BackboneType.RESNET50:
+            backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+            self.backbone = create_feature_extractor(
+                backbone,
+                {
+                    # "relu": "feat1",
+                    "layer1": "feat2",
+                    "layer2": "feat3",
+                    "layer3": "feat4",
+                    "layer4": "feat5",
+                },
+            )
+        else:
+            raise Exception(f"No {backboneType}")
 
         with torch.no_grad():
             outputs_prediction = self.backbone(torch.rand([1, 3, 256, 256])).values()

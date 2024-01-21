@@ -5,7 +5,7 @@ import matplotlib.patches as patches
 from dataloader.dataloader import UAVIDDataset
 
 
-def combine_channels(image: torch.Tensor, colors: np.ndarray, is_predict: bool):
+def combine_channels(image: torch.Tensor, colors: torch.Tensor, is_predict: bool):
     _, h, w = image.shape
     output_image = torch.zeros([h, w, 3], dtype=torch.uint8)
     for i in range(colors.shape[0]):

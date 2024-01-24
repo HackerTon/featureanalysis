@@ -165,7 +165,7 @@ class TextOCRDataset(Dataset):
         self.directory = Path(directory)
         self.images = []
         self.labels = []
-
+        self.area = []
         if is_train:
             self.decode(
                 file_path=str(self.directory.joinpath("TextOCR_0.1_train.json"))
@@ -177,14 +177,17 @@ class TextOCRDataset(Dataset):
         validation_label = json.load(open(file_path))
         for image_id, image in validation_label["imgToAnns"].items():
             bounding_box_each_image = []
+            area_sum = 0
             for annotation in image:
                 annot = validation_label["anns"][f"{annotation}"]
                 bounding_box = annot["bbox"]
                 x1, y1 = int(bounding_box[0]), int(bounding_box[1])
                 x2, y2 = x1 + int(bounding_box[2]), y1 + int(bounding_box[3])
                 bounding_box_each_image.append([x1, y1, x2, y2])
+                area_sum += float(annot["area"])
             self.images.append(image_id)
             self.labels.append(bounding_box_each_image)
+            self.area.append(area_sum)
 
     def __len__(self):
         return len(self.images)
@@ -196,7 +199,7 @@ class TextOCRDataset(Dataset):
         mask = torch.zeros([1, image.size(1), image.size(2)])
         for bounding_box in self.labels[index]:
             x1, y1, x2, y2 = bounding_box
-            _, w, h =mask[..., y1:y2, x1:x2].size()
+            _, w, h = mask[..., y1:y2, x1:x2].size()
             mask[..., y1:y2, x1:x2] = torch.tensor([255]).repeat(1, w, h)
 
         i, j, h, w = RandomCrop.get_params(image, (256, 256))
@@ -210,3 +213,4 @@ class TextOCRDataset(Dataset):
     @staticmethod
     def decode_image(image_path):
         return read_image(image_path, ImageReadMode.RGB)
+

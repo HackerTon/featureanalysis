@@ -4,15 +4,16 @@ import time
 
 import torch
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import Subset
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
 
 from dataloader.dataloader import TextOCRDataset
-from loss import dice_index, dice_index_per_channel, total_loss
+from loss import total_loss
 from model.model import FPNNetwork, UNETNetwork, MultiNet, BackboneType
 from service.hyperparamater import Hyperparameter
 from service.model_saver_service import ModelSaverService
-from utils.utils import combine_channels, visualize
+from utils.utils import combine_channels
 from typing import Union
 
 
@@ -254,7 +255,7 @@ class Trainer:
                     current_training_sample,
                 )
                 running_loss = 0.0
-            
+
     def _eval_one_epoch(
         self,
         epoch: int,
@@ -337,10 +338,10 @@ class Trainer:
 
 
 def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
-    training_data = TextOCRDataset(
-        directory=path,
-        is_train=True,
-    )
+    training_data = TextOCRDataset(directory=path, is_train=True)
+    areas = torch.tensor(training_data.area)
+    indices = torch.nonzero(areas > 82607.54)
+    training_data = Subset(dataset=training_data, indices=indices[..., 0].tolist())
     train_dataloader = DataLoader(
         training_data,
         batch_size=batch_size,

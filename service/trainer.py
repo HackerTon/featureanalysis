@@ -339,9 +339,6 @@ class Trainer:
 
 def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
     training_data = TextOCRDataset(directory=path, is_train=True)
-    areas = torch.tensor(training_data.area)
-    indices = torch.nonzero(areas > 82607.54)
-    training_data = Subset(dataset=training_data, indices=indices[..., 0].tolist())
     train_dataloader = DataLoader(
         training_data,
         batch_size=batch_size,

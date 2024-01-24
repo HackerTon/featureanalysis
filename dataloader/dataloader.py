@@ -200,7 +200,7 @@ class TextOCRDataset(Dataset):
         for bounding_box in self.labels[index]:
             x1, y1, x2, y2 = bounding_box
             _, w, h = mask[..., y1:y2, x1:x2].size()
-            mask[..., y1:y2, x1:x2] = torch.tensor([255]).repeat(1, w, h)
+            mask[..., y1:y2, x1:x2] = torch.tensor([1]).repeat(1, w, h)
 
         i, j, h, w = RandomCrop.get_params(image, (256, 256))
         # Crop image and label
@@ -208,9 +208,8 @@ class TextOCRDataset(Dataset):
         mask = crop(mask, i, j, h, w)
 
         masked = torch.cat([mask, torch.abs(1 - mask)])
-        return image.to(torch.float32) / 255, masked.to(torch.float32) / 255
+        return image.to(torch.float32) / 255, masked.to(torch.float32)
 
     @staticmethod
     def decode_image(image_path):
         return read_image(image_path, ImageReadMode.RGB)
-

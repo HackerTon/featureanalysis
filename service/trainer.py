@@ -7,7 +7,7 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
 
-from dataloader.dataloader import UAVIDDataset
+from dataloader.dataloader import TextOCRDataset
 from loss import dice_index, dice_index_per_channel, total_loss
 from model.model import FPNNetwork, UNETNetwork, MultiNet, BackboneType
 from service.hyperparamater import Hyperparameter
@@ -39,7 +39,7 @@ class Trainer:
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_test,
             )
-            model = UNETNetwork(numberClass=8)
+            model = UNETNetwork(numberClass=2)
             optimizer = torch.optim.Adam(
                 params=model.parameters(),
                 lr=hyperparameter.learning_rate,
@@ -71,7 +71,7 @@ class Trainer:
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_test,
             )
-            model = FPNNetwork(numberClass=8)
+            model = FPNNetwork(numberClass=2)
             optimizer = torch.optim.SGD(
                 params=model.parameters(),
                 lr=hyperparameter.learning_rate,
@@ -103,7 +103,7 @@ class Trainer:
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_test,
             )
-            model = MultiNet(numberClass=8, backboneType=BackboneType.RESNET34)
+            model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET34)
             optimizer = torch.optim.SGD(
                 params=model.parameters(),
                 lr=hyperparameter.learning_rate,
@@ -135,7 +135,7 @@ class Trainer:
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_test,
             )
-            model = MultiNet(numberClass=8, backboneType=BackboneType.RESNET50)
+            model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET50)
             optimizer = torch.optim.SGD(
                 params=model.parameters(),
                 lr=hyperparameter.learning_rate,
@@ -203,14 +203,14 @@ class Trainer:
                 device=device,
                 train_dataset_length=len(dataloader_train),
             )
-            self._visualize_one_epoch(
-                epoch=epoch,
-                model=model,
-                dataloader=dataloader_test,
-                preprocess=preprocess,
-                train_dataset_length=len(dataloader_train),
-                device=device,
-            )
+            # self._visualize_one_epoch(
+            #     epoch=epoch,
+            #     model=model,
+            #     dataloader=dataloader_test,
+            #     preprocess=preprocess,
+            #     train_dataset_length=len(dataloader_train),
+            #     device=device,
+            # )
             self._save(model=model, epoch=epoch)
 
     def _save(self, model: torch.nn.Module, epoch: int):
@@ -254,7 +254,7 @@ class Trainer:
                     current_training_sample,
                 )
                 running_loss = 0.0
-
+            
     def _eval_one_epoch(
         self,
         epoch: int,
@@ -337,8 +337,8 @@ class Trainer:
 
 
 def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
-    training_data = UAVIDDataset(
-        path=path,
+    training_data = TextOCRDataset(
+        directory=path,
         is_train=True,
     )
     train_dataloader = DataLoader(
@@ -352,8 +352,8 @@ def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
 
 
 def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
-    test_data = UAVIDDataset(
-        path=path,
+    test_data = TextOCRDataset(
+        directory=path,
         is_train=False,
     )
     test_dataloader = DataLoader(

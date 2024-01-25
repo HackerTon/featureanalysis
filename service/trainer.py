@@ -158,6 +158,38 @@ class Trainer:
                 preprocess=preprocess,
                 device=device,
             )
+        elif experiment_num == 5:
+            # Initialization
+            train_dataloader = create_train_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_train,
+            )
+            test_dataloader = create_test_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_test,
+            )
+            model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET50)
+            optimizer = torch.optim.Adam(
+                params=model.parameters(),
+                lr=hyperparameter.learning_rate,
+            )
+            preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+
+            # Move weights to specified device
+            model = model.to(device)
+            preprocess = preprocess.to(device)
+
+            # Run
+            self.train(
+                epochs=hyperparameter.epoch,
+                model=model,
+                dataloader_train=train_dataloader,
+                dataloader_test=test_dataloader,
+                optimizer=optimizer,
+                loss_fn=total_loss,
+                preprocess=preprocess,
+                device=device,
+            )
         else:
             print(f"Your experiment number ({experiment_num}) not found")
 

@@ -31,7 +31,7 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--mode", default="cpu", type=str)
     parser.add_argument("-bs", "--batchsize", default=1, type=int)
     parser.add_argument("-p", "--path", required=True, type=str)
-    parser.add_argument("-l", "--learning_rate", default=0.001, type=str)
+    parser.add_argument("-l", "--learning_rate", default=0.001, type=int)
     parser.add_argument(
         "-x",
         "--experiment",

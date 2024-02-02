@@ -213,3 +213,65 @@ class TextOCRDataset(Dataset):
     @staticmethod
     def decode_image(image_path):
         return read_image(image_path, ImageReadMode.RGB)
+
+
+class LicensePlateDataset(Dataset):
+    def __init__(self, directory, is_train=True):
+        if directory is None:
+            print("Directory is none")
+            return
+        self.directory = Path(directory)
+        self.image_label = []
+        if is_train:
+            self.decode(
+                file_path=str(self.directory.joinpath("train/_annotations.coco.json")),
+                is_train=is_train,
+            )
+        else:
+            self.decode(
+                file_path=str(self.directory.joinpath("valid/_annotations.coco.json")),
+                is_train=is_train,
+            )
+
+    def decode(self, file_path: str, is_train=True):
+        with open(file_path) as file:
+            jsonData = json.load(file)
+            for image in jsonData["images"]:
+                image_id = image["id"]
+                image_filename = image["file_name"]
+                for annotation in jsonData["annotations"]:
+                    if annotation["image_id"] == image_id:
+                        bounding_box = annotation["bbox"]
+                        x1, y1 = int(bounding_box[0]), int(bounding_box[1])
+                        x2, y2 = x1 + int(bounding_box[2]), y1 + int(bounding_box[3])
+                        self.image_label.append(
+                            {
+                                "image_filename": f'{"train" if is_train else "valid"}/{image_filename}',
+                                "bbox": [x1, y1, x2, y2],
+                            }
+                        )
+
+    def __len__(self):
+        return len(self.image_label)
+
+    def __getitem__(self, index):
+        image = self.decode_image(
+            str(self.directory.joinpath(f"{self.image_label[index]['image_filename']}"))
+        )
+
+        mask = torch.zeros([1, image.size(1), image.size(2)])
+        x1, y1, x2, y2 = self.image_label[index]["bbox"]
+        _, w, h = mask[..., y1:y2, x1:x2].size()
+        mask[..., y1:y2, x1:x2] = torch.tensor([1]).repeat(1, w, h)
+
+        i, j, h, w = RandomCrop.get_params(image, (256, 256))
+        # Crop image and label
+        image = crop(image, i, j, h, w)
+        mask = crop(mask, i, j, h, w)
+
+        masked = torch.cat([mask, torch.abs(1 - mask)])
+        return image.to(torch.float32) / 255, masked.to(torch.float32)
+
+    @staticmethod
+    def decode_image(image_path):
+        return read_image(image_path, ImageReadMode.RGB)

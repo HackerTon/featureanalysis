@@ -8,7 +8,7 @@ from torch.utils.data import Subset
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
 
-from dataloader.dataloader import TextOCRDataset
+from dataloader.dataloader import LicensePlateDataset
 from loss import total_loss
 from model.model import FPNNetwork, UNETNetwork, MultiNet, BackboneType
 from service.hyperparamater import Hyperparameter
@@ -370,7 +370,7 @@ class Trainer:
 
 
 def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
-    training_data = TextOCRDataset(directory=path, is_train=True)
+    training_data = LicensePlateDataset(directory=path, is_train=True)
     train_dataloader = DataLoader(
         training_data,
         batch_size=batch_size,
@@ -382,7 +382,7 @@ def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
 
 
 def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
-    test_data = TextOCRDataset(
+    test_data = LicensePlateDataset(
         directory=path,
         is_train=False,
     )

@@ -240,7 +240,9 @@ class LicensePlateDataset(Dataset):
                 image_id = image["id"]
                 image_filename = image["file_name"]
                 for annotation in jsonData["annotations"]:
-                    if annotation["image_id"] == image_id:
+                    if annotation["image_id"] == image_id and (
+                        annotation["category_id"] == 1 or annotation["category_id"] == 0
+                    ):
                         bounding_box = annotation["bbox"]
                         x1, y1 = int(bounding_box[0]), int(bounding_box[1])
                         x2, y2 = x1 + int(bounding_box[2]), y1 + int(bounding_box[3])

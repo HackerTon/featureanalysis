@@ -18,7 +18,7 @@ from typing import Union
 
 
 class Trainer:
-    def __init__(self, train_report_rate=1000) -> None:
+    def __init__(self, train_report_rate=5) -> None:
         timestamp = datetime.now().strftime(r"%Y%m%d_%H%M%S")
         self.writer_train = SummaryWriter(
             "data/log/training/train_{}".format(timestamp)

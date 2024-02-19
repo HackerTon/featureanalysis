@@ -5,7 +5,14 @@ from service.hyperparamater import Hyperparameter
 from service.trainer import Trainer
 
 
-def run(epoch: int, device: str, batch_size: int, path: str, experiment_num: int, learning_rate: float):
+def run(
+    epoch: int,
+    device: str,
+    batch_size: int,
+    path: str,
+    experiment_num: int,
+    learning_rate: float,
+):
     if not Path(path).exists():
         print(f"Dataset not found in '{path}'")
         return
@@ -47,5 +54,5 @@ if __name__ == "__main__":
         batch_size=parsed_data.batchsize,
         path=parsed_data.path,
         experiment_num=parsed_data.experiment,
-        learning_rate=parsed_data.learning_rate
+        learning_rate=parsed_data.learning_rate,
     )

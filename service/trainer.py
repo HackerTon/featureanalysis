@@ -205,7 +205,7 @@ class Trainer:
         device: Union[torch.device, str],
     ):
         for epoch in range(epochs):
-            print(f"Training epoch {epoch + 1}, ", end="")
+            print(f"Training epoch {epoch + 1}, ")
 
             # if epoch == 5:
             #     # Unfreeze backbone
@@ -223,10 +223,10 @@ class Trainer:
                 preprocess=preprocess,
                 device=device,
             )
-            if torch.cuda.is_available():
-                torch.cuda.current_stream().synchronize()
-            time_taken = time.time() - initial_time
-            print(f"time_taken: {time_taken}s")
+            # if torch.cuda.is_available():
+            #     torch.cuda.current_stream().synchronize()
+            # time_taken = time.time() - initial_time
+            # print(f"time_taken: {time_taken}s")
             self._eval_one_epoch(
                 epoch=epoch,
                 model=model,

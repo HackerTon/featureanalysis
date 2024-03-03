@@ -9,7 +9,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
 
 from dataloader.dataloader import TextOCRDataset
-from loss import total_loss
+from loss import total_loss, dice_index
 from model.model import FPNNetwork, UNETNetwork, MultiNet, BackboneType
 from service.hyperparamater import Hyperparameter
 from service.model_saver_service import ModelSaverService
@@ -207,11 +207,11 @@ class Trainer:
         for epoch in range(epochs):
             print(f"Training epoch {epoch + 1}, ", end="")
 
-            if epoch == 5:
-                # Unfreeze backbone
-                model: FPNNetwork = model
-                for parameter in model.backbone.parameters():
-                    parameter.requires_grad = True
+            # if epoch == 5:
+            #     # Unfreeze backbone
+            #     model: FPNNetwork = model
+            #     for parameter in model.backbone.parameters():
+            #         parameter.requires_grad = True
 
             initial_time = time.time()
             self._train_one_epoch(
@@ -260,6 +260,7 @@ class Trainer:
         device: torch.device,
     ):
         running_loss = 0.0
+        running_iou = 0.0
         for index, data in enumerate(dataloader):
             inputs: torch.Tensor
             labels: torch.Tensor
@@ -275,18 +276,26 @@ class Trainer:
             loss = loss_fn(outputs, labels)
             loss.backward()
 
+            iou_score = dice_index(outputs.softmax(1), labels)
+
             optimizer.step()
             running_loss += loss.item()
+            running_iou += iou_score.item()
 
             if index % self.train_report_rate == (self.train_report_rate - 1):
-                last_loss = running_loss / self.train_report_rate
                 current_training_sample = epoch * len(dataloader) + index + 1
                 self.writer_train.add_scalar(
                     "loss",
-                    last_loss,
+                    running_loss / self.train_report_rate,
+                    current_training_sample,
+                )
+                self.writer_train.add_scalar(
+                    "iou_score",
+                    running_iou / self.train_report_rate,
                     current_training_sample,
                 )
                 running_loss = 0.0
+                running_iou = 0.0
 
     def _eval_one_epoch(
         self,
@@ -299,6 +308,7 @@ class Trainer:
         train_dataset_length: int,
     ):
         sum_loss = 0.0
+        sum_iou = 0.0
         with torch.no_grad():
             for data in dataloader:
                 inputs: torch.Tensor
@@ -311,12 +321,16 @@ class Trainer:
                 inputs = preprocess(inputs)
                 outputs = model(inputs)
                 loss = loss_fn(outputs, labels)
+                iou_score = dice_index(outputs.softmax(1), labels)
 
                 sum_loss += loss.item()
+                sum_iou += iou_score.item()
 
         iteration = (epoch + 1) * train_dataset_length
         avg_loss = sum_loss / len(dataloader)
+        avg_iou = sum_iou / len(dataloader)
         self.writer_test.add_scalar("loss", avg_loss, iteration)
+        self.writer_test.add_scalar("iou_score", avg_iou, iteration)
 
     def _visualize_one_epoch(
         self,

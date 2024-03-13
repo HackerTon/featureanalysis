@@ -4,11 +4,11 @@ import torch
 def dice_index(
     pred: torch.Tensor,
     target: torch.Tensor,
-    epsilon=1e-9,
+    epsilon=1e-4,
 ):
     pred_flat = pred.flatten()
     target_flat = target.flatten()
-    nominator = 2 * torch.matmul(pred_flat, target_flat)
+    nominator = 2 * torch.sum(pred_flat * target_flat)
     denominator = torch.sum(pred_flat) + torch.sum(target_flat)
     return (nominator + epsilon) / (denominator + epsilon)
 
@@ -16,7 +16,7 @@ def dice_index(
 def dice_index_per_channel(
     pred: torch.Tensor,
     target: torch.Tensor,
-    epsilon=1e-9,
+    epsilon=1e-4,
 ):
     pred_flat = pred.permute([1, 0, 2, 3]).flatten(1)
     label_flat = target.permute([1, 0, 2, 3]).flatten(1)

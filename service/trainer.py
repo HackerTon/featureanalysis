@@ -261,24 +261,27 @@ class Trainer:
     ):
         running_loss = 0.0
         running_iou = 0.0
+        scaler = torch.cuda.amp.grad_scaler.GradScaler()
         for index, data in enumerate(dataloader):
-            inputs: torch.Tensor
-            labels: torch.Tensor
-            inputs, labels = data
+            with torch.autocast(device_type=device, dtype=torch.float16):
+                inputs: torch.Tensor
+                labels: torch.Tensor
+                inputs, labels = data
 
-            optimizer.zero_grad(set_to_none=True)
-            inputs = inputs.to(device)
-            labels = labels.to(device)
+                inputs = inputs.to(device)
+                labels = labels.to(device)
 
-            inputs = preprocess(inputs)
+                inputs = preprocess(inputs)
 
-            outputs = model(inputs)
-            loss = loss_fn(outputs, labels)
-            loss.backward()
+                outputs = model(inputs)
+                loss = loss_fn(outputs, labels)
 
+            scaler.scale(loss).backward()
             iou_score = dice_index(outputs.softmax(1), labels)
+            scaler.step(optimizer=optimizer)
+            scaler.update()
+            optimizer.zero_grad(set_to_none=True)
 
-            optimizer.step()
             running_loss += loss.item()
             running_iou += iou_score.item()
 
@@ -311,16 +314,17 @@ class Trainer:
         sum_iou = 0.0
         with torch.no_grad():
             for data in dataloader:
-                inputs: torch.Tensor
-                labels: torch.Tensor
-                inputs, labels = data
+                with torch.autocast(device_type=device, dtype=torch.float16):
+                    inputs: torch.Tensor
+                    labels: torch.Tensor
+                    inputs, labels = data
 
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+                    inputs = inputs.to(device)
+                    labels = labels.to(device)
 
-                inputs = preprocess(inputs)
-                outputs = model(inputs)
-                loss = loss_fn(outputs, labels)
+                    inputs = preprocess(inputs)
+                    outputs = model(inputs)
+                    loss = loss_fn(outputs, labels)
                 iou_score = dice_index(outputs.softmax(1), labels)
 
                 sum_loss += loss.item()

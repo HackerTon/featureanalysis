@@ -263,7 +263,7 @@ class Trainer:
         running_iou = 0.0
         scaler = torch.cuda.amp.grad_scaler.GradScaler()
         for index, data in enumerate(dataloader):
-            with torch.autocast(device_type=device, dtype=torch.float16):
+            with torch.autocast(device_type=device, dtype=torch.bfloat16):
                 inputs: torch.Tensor
                 labels: torch.Tensor
                 inputs, labels = data
@@ -275,9 +275,10 @@ class Trainer:
 
                 outputs = model(inputs)
                 loss = loss_fn(outputs, labels)
+                iou_score = dice_index(outputs.softmax(1), labels)
+
 
             scaler.scale(loss).backward()
-            iou_score = dice_index(outputs.softmax(1), labels)
             scaler.step(optimizer=optimizer)
             scaler.update()
             optimizer.zero_grad(set_to_none=True)
@@ -325,7 +326,7 @@ class Trainer:
                     inputs = preprocess(inputs)
                     outputs = model(inputs)
                     loss = loss_fn(outputs, labels)
-                iou_score = dice_index(outputs.softmax(1), labels)
+                    iou_score = dice_index(outputs.softmax(1), labels)
 
                 sum_loss += loss.item()
                 sum_iou += iou_score.item()

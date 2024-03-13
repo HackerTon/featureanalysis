@@ -204,6 +204,11 @@ class Trainer:
         preprocess,
         device: Union[torch.device, str],
     ):
+        if torch.cuda.is_available():
+            dtype = torch.float16
+        else:
+            dtype = torch.bfloat16
+            
         for epoch in range(epochs):
             print(f"Training epoch {epoch + 1}, ", end="")
 
@@ -222,6 +227,7 @@ class Trainer:
                 loss_fn=loss_fn,
                 preprocess=preprocess,
                 device=device,
+                dtype=dtype,
             )
             if torch.cuda.is_available():
                 torch.cuda.current_stream().synchronize()
@@ -235,6 +241,7 @@ class Trainer:
                 preprocess=preprocess,
                 device=device,
                 train_dataset_length=len(dataloader_train),
+                dtype=dtype,
             )
             # self._visualize_one_epoch(
             #     epoch=epoch,
@@ -258,12 +265,13 @@ class Trainer:
         loss_fn,
         preprocess,
         device: torch.device,
+        dtype,
     ):
         running_loss = 0.0
         running_iou = 0.0
         scaler = torch.cuda.amp.grad_scaler.GradScaler()
         for index, data in enumerate(dataloader):
-            with torch.autocast(device_type=device, dtype=torch.bfloat16):
+            with torch.autocast(device_type=device, dtype=dtype):
                 inputs: torch.Tensor
                 labels: torch.Tensor
                 inputs, labels = data
@@ -276,7 +284,6 @@ class Trainer:
                 outputs = model(inputs)
                 loss = loss_fn(outputs, labels)
                 iou_score = dice_index(outputs.softmax(1), labels)
-
 
             scaler.scale(loss).backward()
             scaler.step(optimizer=optimizer)
@@ -310,12 +317,13 @@ class Trainer:
         loss_fn,
         device: torch.device,
         train_dataset_length: int,
+        dtype,
     ):
         sum_loss = 0.0
         sum_iou = 0.0
         with torch.no_grad():
             for data in dataloader:
-                with torch.autocast(device_type=device, dtype=torch.float16):
+                with torch.autocast(device_type=device, dtype=dtype):
                     inputs: torch.Tensor
                     labels: torch.Tensor
                     inputs, labels = data

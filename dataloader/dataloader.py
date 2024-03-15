@@ -263,9 +263,10 @@ class LungDataset(Dataset):
         # Crop image and label
         image = crop(image, i, j, h, w)
         label = crop(label, i, j, h, w)
+        label = label.float()
 
         mask = torch.cat([label, torch.abs(1 - label)])        
-        return image.float() / 255, mask.float()
+        return image.float() / 255, mask
     @staticmethod
     def decode_image_gray(image_path):
         return read_image(image_path, ImageReadMode.GRAY)

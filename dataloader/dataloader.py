@@ -273,8 +273,3 @@ class LungDataset(Dataset):
     @staticmethod
     def decode_image(image_path):
         return read_image(image_path, ImageReadMode.RGB)
-    
-
-for x, y in LungDataset('data/lung_segmentation'):
-    print(y.shape, y.min(), y.max())
-    # write_jpeg(y)

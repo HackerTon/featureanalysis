@@ -244,8 +244,8 @@ class LungDataset(Dataset):
         image = self.decode_image(str(self.images[index]))
         label = self.decode_image_gray(str(self.labels[index]))
         if not self.is_train:
-            image = resize(image, [968, 905], interpolation=InterpolationMode.NEAREST)
-            label = resize(label, [968, 905], interpolation=InterpolationMode.NEAREST)
+            image = resize(image, [968, 968], interpolation=InterpolationMode.NEAREST)
+            label = resize(label, [968, 968], interpolation=InterpolationMode.NEAREST)
         else:
             i, j, h, w = RandomCrop.get_params(image, (256, 256))
             image = crop(image, i, j, h, w)

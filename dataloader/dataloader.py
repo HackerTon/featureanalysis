@@ -237,21 +237,6 @@ class LungDataset(Dataset):
             filename_without_extension = filename.split(".")[0].replace("_mask", "")
             self.images.append(path.joinpath(f"{filename_without_extension}.png"))
 
-        # validation_label = json.load(open(file_path))
-        # for image_id, image in validation_label["imgToAnns"].items():
-        #     bounding_box_each_image = []
-        #     area_sum = 0
-        #     for annotation in image:
-        #         annot = validation_label["anns"][f"{annotation}"]
-        #         bounding_box = annot["bbox"]
-        #         x1, y1 = int(bounding_box[0]), int(bounding_box[1])
-        #         x2, y2 = x1 + int(bounding_box[2]), y1 + int(bounding_box[3])
-        #         bounding_box_each_image.append([x1, y1, x2, y2])
-        #         area_sum += float(annot["area"])
-        #     self.images.append(image_id)
-        #     self.labels.append(bounding_box_each_image)
-        #     self.area.append(area_sum)
-
     def __len__(self):
         return len(self.images)
 

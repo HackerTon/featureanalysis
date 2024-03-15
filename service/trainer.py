@@ -415,7 +415,7 @@ def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
         batch_size=None,
         collate_fn=collate_fn,
         shuffle=True,
-        num_workers=4,
+        num_workers=6,
         pin_memory=True,
     )
     return train_dataloader

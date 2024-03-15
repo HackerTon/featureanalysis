@@ -1,20 +1,20 @@
+import time
 from datetime import datetime
 from pathlib import Path
-import time
+from typing import Union
 
 import torch
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data import Subset
 from torch.utils.tensorboard.writer import SummaryWriter
-from torchvision.transforms import Normalize
+from torchvision.transforms import Normalize, RandomCrop, Resize
+from torchvision.transforms.functional import crop
 
-from dataloader.dataloader import LungDataset, TextOCRDataset
-from loss import total_loss, dice_index
-from model.model import FPNNetwork, UNETNetwork, MultiNet, BackboneType
+from dataloader.dataloader import LungDataset
+from loss import dice_index, total_loss
+from model.model import BackboneType, FPNNetwork, MultiNet, UNETNetwork
 from service.hyperparamater import Hyperparameter
 from service.model_saver_service import ModelSaverService
 from utils.utils import combine_channels
-from typing import Union
 
 
 class Trainer:
@@ -100,10 +100,10 @@ class Trainer:
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_train,
             )
-            # test_dataloader = create_test_dataloader(
-            #     path=hyperparameter.data_path,
-            #     batch_size=hyperparameter.batch_size_test,
-            # )
+            test_dataloader = create_test_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_test,
+            )
             model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET34)
             optimizer = torch.optim.SGD(
                 params=model.parameters(),
@@ -163,6 +163,10 @@ class Trainer:
             train_dataloader = create_train_dataloader(
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_train,
+            )
+            test_dataloader = create_test_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_test,
             )
             test_dataloader = train_dataloader
             model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET50)
@@ -394,22 +398,30 @@ class Trainer:
 
 
 def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
+    def collate_fn(datasetinput):
+        x, y = datasetinput
+        images = []
+        labels = []
+        for _ in range(batch_size):
+            i, j, h, w = RandomCrop.get_params(x, (256, 256))
+            # Crop image and label
+            images.append(crop(x, i, j, h, w))
+            labels.append(crop(y, i, j, h, w))
+        return torch.stack(images), torch.stack(labels)
+
     training_data = LungDataset(directory=path, is_train=True)
     train_dataloader = DataLoader(
         training_data,
-        batch_size=batch_size,
+        batch_size=None,
+        collate_fn=collate_fn,
         shuffle=True,
         pin_memory=True,
-        num_workers=4,
     )
     return train_dataloader
 
 
 def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
-    test_data = LungDataset(
-        directory=path,
-        is_train=True,
-    )
+    test_data = LungDataset(directory=path, is_train=False)
     test_dataloader = DataLoader(
         test_data,
         batch_size=batch_size,
@@ -417,3 +429,9 @@ def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
         pin_memory=True,
     )
     return test_dataloader
+
+
+# test_dataloader = create_test_dataloader("data/lung_segmentation", 16)
+# for x, y in test_dataloader:
+#     print(x.shape, y.shape)
+#     break

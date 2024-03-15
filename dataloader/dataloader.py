@@ -3,9 +3,9 @@ from pathlib import Path
 
 import torch
 from torch.utils.data import Dataset
-from torchvision.io import read_image, ImageReadMode, write_jpeg
+from torchvision.io import read_image, ImageReadMode
 from torchvision.transforms import RandomCrop, Resize
-from torchvision.transforms.functional import crop
+from torchvision.transforms.functional import crop, resize, InterpolationMode
 
 
 class UAVIDDataset4K(Dataset):
@@ -224,11 +224,11 @@ class LungDataset(Dataset):
         self.images = []
         self.labels = []
         self.area = []
-
+        self.is_train = is_train
         if is_train:
             self.decode(path=self.directory.joinpath("CXR_png"))
         else:
-            self.decode(path=self.directory.joinpath("test"))
+            self.decode(path=self.directory.joinpath("CXR_png"))
 
     def decode(self, path: Path):
         self.labels = [x for x in self.directory.joinpath("masks").glob("*")]
@@ -258,15 +258,16 @@ class LungDataset(Dataset):
     def __getitem__(self, index):
         image = self.decode_image(str(self.images[index]))
         label = self.decode_image_gray(str(self.labels[index]))
-
-        i, j, h, w = RandomCrop.get_params(image, (256, 256))
-        # Crop image and label
-        image = crop(image, i, j, h, w)
-        label = crop(label, i, j, h, w)
         label = label.float() / 255
+        mask = torch.cat([label, torch.abs(1 - label)])
 
-        mask = torch.cat([label, torch.abs(1 - label)])        
+        if not self.is_train:
+            # resizer = Resize([2160, 3840], antialias="True")
+            image = resize(image, [968, 905], interpolation=InterpolationMode.NEAREST)
+            label = resize(label, [968, 905], interpolation=InterpolationMode.NEAREST)
+
         return image.float() / 255, mask
+    
     @staticmethod
     def decode_image_gray(image_path):
         return read_image(image_path, ImageReadMode.GRAY)

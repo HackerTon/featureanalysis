@@ -263,7 +263,7 @@ class LungDataset(Dataset):
         # Crop image and label
         image = crop(image, i, j, h, w)
         label = crop(label, i, j, h, w)
-        label = label.float()
+        label = label.float() / 255
 
         mask = torch.cat([label, torch.abs(1 - label)])        
         return image.float() / 255, mask
@@ -274,3 +274,8 @@ class LungDataset(Dataset):
     @staticmethod
     def decode_image(image_path):
         return read_image(image_path, ImageReadMode.RGB)
+    
+# print('hello')
+# dataset = LungDataset(directory='data/lung_segmentation')
+# for x, y in dataset:
+#     print(x.min(), y.min(), x.max(), y.max())

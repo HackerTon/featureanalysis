@@ -245,11 +245,9 @@ class LungDataset(Dataset):
         label = self.decode_image_gray(str(self.labels[index]))
         label = label.float() / 255
         mask = torch.cat([label, torch.abs(1 - label)])
-
         if not self.is_train:
             image = resize(image, [968, 905], interpolation=InterpolationMode.NEAREST)
-            label = resize(label, [968, 905], interpolation=InterpolationMode.NEAREST)
-
+            mask = resize(mask, [968, 905], interpolation=InterpolationMode.NEAREST)
         return image.float() / 255, mask
     
     @staticmethod

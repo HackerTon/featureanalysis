@@ -414,7 +414,7 @@ def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
         batch_size=None,
         collate_fn=collate_fn,
         shuffle=True,
-        num_workers=6,
+        num_workers=8,
         pin_memory=True,
     )
     return train_dataloader
@@ -425,13 +425,13 @@ def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
     test_dataloader = DataLoader(
         test_data,
         batch_size=batch_size,
-        # num_workers=0,
+        num_workers=8,
         pin_memory=True,
     )
     return test_dataloader
 
 
-test_dataloader = create_test_dataloader("data/lung_segmentation", 16)
-for x, y in test_dataloader:
-    print(x.shape, y.shape)
-    break
+# test_dataloader = create_test_dataloader("data/lung_segmentation", 16)
+# for x, y in test_dataloader:
+#     print(x.shape, y.shape)
+#     break

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import torch
 from torch.utils.data import Dataset
-from torchvision.io import read_image, ImageReadMode
+from torchvision.io import read_image, ImageReadMode, write_jpeg
 from torchvision.transforms import RandomCrop, Resize
 from torchvision.transforms.functional import crop
 
@@ -209,6 +209,62 @@ class TextOCRDataset(Dataset):
 
         masked = torch.cat([mask, torch.abs(1 - mask)])
         return image.to(torch.float32) / 255, masked.to(torch.float32)
+
+    @staticmethod
+    def decode_image(image_path):
+        return read_image(image_path, ImageReadMode.RGB)
+
+
+class LungDataset(Dataset):
+    def __init__(self, directory, is_train=True):
+        if directory == None:
+            print("Directory is none")
+            return
+        self.directory = Path(directory)
+        self.images = []
+        self.labels = []
+        self.area = []
+
+        if is_train:
+            self.decode(path=self.directory.joinpath("CXR_png"))
+        else:
+            self.decode(path=self.directory.joinpath("test"))
+
+    def decode(self, path: Path):
+        self.labels = [x for x in self.directory.joinpath("masks").glob("*")]
+        for label_image in self.labels:
+            filename = label_image.name
+            filename_without_extension = filename.split(".")[0].replace("_mask", "")
+            self.images.append(path.joinpath(f"{filename_without_extension}.png"))
+
+        # validation_label = json.load(open(file_path))
+        # for image_id, image in validation_label["imgToAnns"].items():
+        #     bounding_box_each_image = []
+        #     area_sum = 0
+        #     for annotation in image:
+        #         annot = validation_label["anns"][f"{annotation}"]
+        #         bounding_box = annot["bbox"]
+        #         x1, y1 = int(bounding_box[0]), int(bounding_box[1])
+        #         x2, y2 = x1 + int(bounding_box[2]), y1 + int(bounding_box[3])
+        #         bounding_box_each_image.append([x1, y1, x2, y2])
+        #         area_sum += float(annot["area"])
+        #     self.images.append(image_id)
+        #     self.labels.append(bounding_box_each_image)
+        #     self.area.append(area_sum)
+
+    def __len__(self):
+        return len(self.images)
+
+    def __getitem__(self, index):
+        image = self.decode_image(str(self.images[index]))
+        label = self.decode_image(str(self.labels[index]))
+
+        i, j, h, w = RandomCrop.get_params(image, (256, 256))
+        # Crop image and label
+        image = crop(image, i, j, h, w)
+        label = crop(label, i, j, h, w)
+
+        return image.float() / 255, label.float() / 255
 
     @staticmethod
     def decode_image(image_path):

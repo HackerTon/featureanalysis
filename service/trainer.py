@@ -8,7 +8,7 @@ from torch.utils.data import Subset
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
 
-from dataloader.dataloader import TextOCRDataset
+from dataloader.dataloader import LungDataset, TextOCRDataset
 from loss import total_loss, dice_index
 from model.model import FPNNetwork, UNETNetwork, MultiNet, BackboneType
 from service.hyperparamater import Hyperparameter
@@ -100,10 +100,10 @@ class Trainer:
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_train,
             )
-            test_dataloader = create_test_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_test,
-            )
+            # test_dataloader = create_test_dataloader(
+            #     path=hyperparameter.data_path,
+            #     batch_size=hyperparameter.batch_size_test,
+            # )
             model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET34)
             optimizer = torch.optim.SGD(
                 params=model.parameters(),
@@ -120,7 +120,7 @@ class Trainer:
                 epochs=hyperparameter.epoch,
                 model=model,
                 dataloader_train=train_dataloader,
-                dataloader_test=test_dataloader,
+                dataloader_test=train_dataloader,
                 optimizer=optimizer,
                 loss_fn=total_loss,
                 preprocess=preprocess,
@@ -397,7 +397,7 @@ class Trainer:
 
 
 def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
-    training_data = TextOCRDataset(directory=path, is_train=True)
+    training_data = LungDataset(directory=path, is_train=True)
     train_dataloader = DataLoader(
         training_data,
         batch_size=batch_size,
@@ -409,9 +409,9 @@ def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
 
 
 def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
-    test_data = TextOCRDataset(
+    test_data = LungDataset(
         directory=path,
-        is_train=False,
+        is_train=True,
     )
     test_dataloader = DataLoader(
         test_data,

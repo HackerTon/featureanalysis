@@ -247,7 +247,6 @@ class LungDataset(Dataset):
         mask = torch.cat([label, torch.abs(1 - label)])
 
         if not self.is_train:
-            # resizer = Resize([2160, 3840], antialias="True")
             image = resize(image, [968, 905], interpolation=InterpolationMode.NEAREST)
             label = resize(label, [968, 905], interpolation=InterpolationMode.NEAREST)
 

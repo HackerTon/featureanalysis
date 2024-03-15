@@ -168,7 +168,6 @@ class Trainer:
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_test,
             )
-            test_dataloader = train_dataloader
             model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET50)
             optimizer = torch.optim.Adam(
                 params=model.parameters(),
@@ -249,7 +248,7 @@ class Trainer:
                 model=model,
                 dataloader=dataloader_test,
                 preprocess=preprocess,
-                train_dataset_length=len(dataloader_train),
+                train_dataset_length=len(dataloader_test),
                 device=device,
             )
             self._save(model=model, epoch=epoch)
@@ -426,13 +425,13 @@ def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
     test_dataloader = DataLoader(
         test_data,
         batch_size=batch_size,
-        num_workers=4,
+        # num_workers=0,
         pin_memory=True,
     )
     return test_dataloader
 
 
-# test_dataloader = create_test_dataloader("data/lung_segmentation", 16)
-# for x, y in test_dataloader:
-#     print(x.shape, y.shape)
-#     break
+test_dataloader = create_test_dataloader("data/lung_segmentation", 16)
+for x, y in test_dataloader:
+    print(x.shape, y.shape)
+    break

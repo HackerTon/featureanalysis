@@ -208,7 +208,7 @@ class Trainer:
             dtype = torch.float16
         else:
             dtype = torch.bfloat16
-            
+
         for epoch in range(epochs):
             print(f"Training epoch {epoch + 1}, ", end="")
 

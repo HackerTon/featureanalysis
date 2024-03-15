@@ -164,10 +164,7 @@ class Trainer:
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_train,
             )
-            test_dataloader = create_test_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_test,
-            )
+            test_dataloader = train_dataloader
             model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET50)
             optimizer = torch.optim.Adam(
                 params=model.parameters(),

@@ -257,15 +257,24 @@ class LungDataset(Dataset):
 
     def __getitem__(self, index):
         image = self.decode_image(str(self.images[index]))
-        label = self.decode_image(str(self.labels[index]))
+        label = self.decode_image_gray(str(self.labels[index]))
 
         i, j, h, w = RandomCrop.get_params(image, (256, 256))
         # Crop image and label
         image = crop(image, i, j, h, w)
         label = crop(label, i, j, h, w)
 
-        return image.float() / 255, label.float() / 255
+        mask = torch.cat([label, torch.abs(1 - label)])        
+        return image.float() / 255, mask.float()
+    @staticmethod
+    def decode_image_gray(image_path):
+        return read_image(image_path, ImageReadMode.GRAY)
 
     @staticmethod
     def decode_image(image_path):
         return read_image(image_path, ImageReadMode.RGB)
+    
+
+for x, y in LungDataset('data/lung_segmentation'):
+    print(y.shape, y.min(), y.max())
+    # write_jpeg(y)

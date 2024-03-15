@@ -397,22 +397,21 @@ class Trainer:
 
 
 def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
-    def collate_fn(datasetinput):
-        x, y = datasetinput
-        images = []
-        labels = []
-        for _ in range(batch_size):
-            i, j, h, w = RandomCrop.get_params(x, (256, 256))
-            # Crop image and label
-            images.append(crop(x, i, j, h, w))
-            labels.append(crop(y, i, j, h, w))
-        return torch.stack(images), torch.stack(labels)
+    # def collate_fn(datasetinput):
+    #     x, y = datasetinput
+    #     images = []
+    #     labels = []
+    #     for _ in range(batch_size):
+    #         i, j, h, w = RandomCrop.get_params(x, (256, 256))
+    #         # Crop image and label
+    #         images.append(crop(x, i, j, h, w))
+    #         labels.append(crop(y, i, j, h, w))
+    #     return torch.stack(images), torch.stack(labels)
 
     training_data = LungDataset(directory=path, is_train=True)
     train_dataloader = DataLoader(
         training_data,
-        batch_size=None,
-        collate_fn=collate_fn,
+        batch_size=batch_size,
         shuffle=True,
         num_workers=4,
         pin_memory=True,

@@ -243,13 +243,19 @@ class LungDataset(Dataset):
     def __getitem__(self, index):
         image = self.decode_image(str(self.images[index]))
         label = self.decode_image_gray(str(self.labels[index]))
-        label = label.float() / 255
-        mask = torch.cat([label, torch.abs(1 - label)])
         if not self.is_train:
             image = resize(image, [968, 905], interpolation=InterpolationMode.NEAREST)
-            mask = resize(mask, [968, 905], interpolation=InterpolationMode.NEAREST)
-        return image.float() / 255, mask
-    
+            label = resize(label, [968, 905], interpolation=InterpolationMode.NEAREST)
+        else:
+            i, j, h, w = RandomCrop.get_params(image, (256, 256))
+            image = crop(image, i, j, h, w)
+            label = crop(label, i, j, h, w)
+        image = image.float() / 255
+        label = label.float() / 255
+        label = torch.cat([label, torch.abs(1 - label)])
+
+        return image, label
+
     @staticmethod
     def decode_image_gray(image_path):
         return read_image(image_path, ImageReadMode.GRAY)
@@ -257,7 +263,8 @@ class LungDataset(Dataset):
     @staticmethod
     def decode_image(image_path):
         return read_image(image_path, ImageReadMode.RGB)
-    
+
+
 # print('hello')
 # dataset = LungDataset(directory='data/lung_segmentation')
 # for x, y in dataset:

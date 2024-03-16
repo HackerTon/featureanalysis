@@ -6,8 +6,8 @@ from typing import Union
 import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
-from torchvision.transforms import Normalize, RandomCrop, Resize
-from torchvision.transforms.functional import crop
+from torchvision.transforms import Normalize
+from torchvision.transforms.functional import InterpolationMode, resize
 
 from dataloader.dataloader import LungDataset
 from loss import dice_index, total_loss
@@ -279,6 +279,17 @@ class Trainer:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
+                inputs = resize(
+                    inputs,
+                    [512, 512],
+                    interpolation=InterpolationMode.NEAREST,
+                )
+                labels = resize(
+                    labels,
+                    [512, 512],
+                    interpolation=InterpolationMode.NEAREST,
+                )
+
                 inputs = preprocess(inputs)
 
                 outputs = model(inputs)
@@ -330,6 +341,17 @@ class Trainer:
 
                     inputs = inputs.to(device)
                     labels = labels.to(device)
+
+                    inputs = resize(
+                        inputs,
+                        [512, 512],
+                        interpolation=InterpolationMode.NEAREST,
+                    )
+                    labels = resize(
+                        labels,
+                        [512, 512],
+                        interpolation=InterpolationMode.NEAREST,
+                    )
 
                     inputs = preprocess(inputs)
                     outputs = model(inputs)
@@ -397,17 +419,6 @@ class Trainer:
 
 
 def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
-    # def collate_fn(datasetinput):
-    #     x, y = datasetinput
-    #     images = []
-    #     labels = []
-    #     for _ in range(batch_size):
-    #         i, j, h, w = RandomCrop.get_params(x, (256, 256))
-    #         # Crop image and label
-    #         images.append(crop(x, i, j, h, w))
-    #         labels.append(crop(y, i, j, h, w))
-    #     return torch.stack(images), torch.stack(labels)
-
     training_data = LungDataset(directory=path, is_train=True)
     train_dataloader = DataLoader(
         training_data,

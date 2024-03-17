@@ -1,15 +1,14 @@
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
-from torchvision.transforms import Normalize, RandomCrop, Resize
-from torchvision.transforms.functional import crop
+from torchvision.transforms import Normalize
 
-from dataloader.dataloader import LungDataset
+from dataloader.dataloader import CardiacDataset, LungDataset
 from loss import dice_index, total_loss
 from model.model import BackboneType, FPNNetwork, MultiNet, UNETNetwork
 from service.hyperparamater import Hyperparameter
@@ -160,15 +159,15 @@ class Trainer:
             )
         elif experiment_num == 5:
             # Initialization
-            train_dataloader = create_train_dataloader(
+            train_dataloader = create_cardiac_dataloader_train(
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_train,
             )
-            test_dataloader = create_test_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_test,
-            )
-            model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET50)
+            # test_dataloader = create_test_dataloader(
+            #     path=hyperparameter.data_path,
+            #     batch_size=hyperparameter.batch_size_test,
+            # )
+            model = MultiNet(numberClass=3, backboneType=BackboneType.RESNET50)
             optimizer = torch.optim.Adam(
                 params=model.parameters(),
                 lr=hyperparameter.learning_rate,
@@ -184,7 +183,7 @@ class Trainer:
                 epochs=hyperparameter.epoch,
                 model=model,
                 dataloader_train=train_dataloader,
-                dataloader_test=test_dataloader,
+                dataloader_test=None,
                 optimizer=optimizer,
                 loss_fn=total_loss,
                 preprocess=preprocess,
@@ -198,11 +197,11 @@ class Trainer:
         epochs: int,
         model: torch.nn.Module,
         dataloader_train: DataLoader,
-        dataloader_test: DataLoader,
+        dataloader_test: Optional[DataLoader],
         optimizer: torch.optim.Optimizer,
         loss_fn,
         preprocess,
-        device: Union[torch.device, str],
+        device: str,
     ):
         if torch.cuda.is_available():
             dtype = torch.float16
@@ -229,28 +228,39 @@ class Trainer:
                 device=device,
                 dtype=dtype,
             )
-            if torch.cuda.is_available():
-                torch.cuda.current_stream().synchronize()
             time_taken = time.time() - initial_time
             print(f"time_taken: {time_taken}s")
-            self._eval_one_epoch(
-                epoch=epoch,
-                model=model,
-                dataloader=dataloader_test,
-                loss_fn=loss_fn,
-                preprocess=preprocess,
-                device=device,
-                train_dataset_length=len(dataloader_train),
-                dtype=dtype,
-            )
-            self._visualize_one_epoch(
-                epoch=epoch,
-                model=model,
-                dataloader=dataloader_test,
-                preprocess=preprocess,
-                train_dataset_length=len(dataloader_test),
-                device=device,
-            )
+
+            if dataloader_test is not None:
+                self._eval_one_epoch(
+                    epoch=epoch,
+                    model=model,
+                    dataloader=dataloader_test,
+                    loss_fn=loss_fn,
+                    preprocess=preprocess,
+                    device=device,
+                    train_dataset_length=len(dataloader_train),
+                    dtype=dtype,
+                )
+
+            if dataloader_test is None:
+                self._visualize_one_epoch(
+                    epoch=epoch,
+                    model=model,
+                    dataloader=dataloader_train,
+                    preprocess=preprocess,
+                    train_dataset_length=len(dataloader_train),
+                    device=device,
+                )
+            else:
+                self._visualize_one_epoch(
+                    epoch=epoch,
+                    model=model,
+                    dataloader=dataloader_test,
+                    preprocess=preprocess,
+                    train_dataset_length=len(dataloader_train),
+                    device=device,
+                )
             self._save(model=model, epoch=epoch)
 
     def _save(self, model: torch.nn.Module, epoch: int):
@@ -264,7 +274,7 @@ class Trainer:
         optimizer: torch.optim.Optimizer,
         loss_fn,
         preprocess,
-        device: torch.device,
+        device: str,
         dtype,
     ):
         running_loss = 0.0
@@ -308,6 +318,8 @@ class Trainer:
                 running_loss = 0.0
                 running_iou = 0.0
 
+            break
+
     def _eval_one_epoch(
         self,
         epoch: int,
@@ -315,12 +327,13 @@ class Trainer:
         dataloader: DataLoader,
         preprocess,
         loss_fn,
-        device: torch.device,
+        device: str,
         train_dataset_length: int,
         dtype,
     ):
         sum_loss = 0.0
         sum_iou = 0.0
+
         with torch.no_grad():
             for data in dataloader:
                 with torch.autocast(device_type=device, dtype=dtype):
@@ -369,7 +382,7 @@ class Trainer:
                     [
                         [0, 0, 0],
                         [0, 0, 128],
-                        # [128, 64, 128],
+                        [128, 64, 128],
                         # [0, 128, 0],
                         # [0, 128, 128],
                         # [128, 0, 64],
@@ -397,17 +410,6 @@ class Trainer:
 
 
 def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
-    # def collate_fn(datasetinput):
-    #     x, y = datasetinput
-    #     images = []
-    #     labels = []
-    #     for _ in range(batch_size):
-    #         i, j, h, w = RandomCrop.get_params(x, (256, 256))
-    #         # Crop image and label
-    #         images.append(crop(x, i, j, h, w))
-    #         labels.append(crop(y, i, j, h, w))
-    #     return torch.stack(images), torch.stack(labels)
-
     training_data = LungDataset(directory=path, is_train=True)
     train_dataloader = DataLoader(
         training_data,
@@ -430,7 +432,39 @@ def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
     return test_dataloader
 
 
-# test_dataloader = create_test_dataloader("data/lung_segmentation", 16)
-# for x, y in test_dataloader:
+def create_cardiac_dataloader_train(path: str, batch_size: int) -> DataLoader:
+    training_data = CardiacDataset(directory_path=path, is_train=True)
+    train_dataloader = DataLoader(
+        training_data,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=4,
+        pin_memory=True,
+    )
+    return train_dataloader
+
+
+def create_cardiac_dataloader_test(path: str, batch_size: int) -> DataLoader:
+    test_data = CardiacDataset(directory_path=path, is_train=False)
+    test_dataloader = DataLoader(
+        test_data,
+        batch_size=batch_size,
+        num_workers=4,
+        pin_memory=True,
+    )
+    return test_dataloader
+
+
+# from torchvision.io import write_png
+# training_data = CardiacDataset(directory_path='data/cardiac', is_train=True)
+# train_dataloader = DataLoader(
+#     training_data,
+#     batch_size=1,
+#     shuffle=False,
+#     num_workers=0,
+#     pin_memory=True,
+# )
+# for x, y in train_dataloader:
 #     print(x.shape, y.shape)
+#     write_png((y[0, 1] * 255).to(torch.uint8).unsqueeze(0), 'test.png')
 #     break

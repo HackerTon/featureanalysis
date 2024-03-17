@@ -38,7 +38,7 @@ class UAVIDDataset4K(Dataset):
             ]
 
         if len(self.images) is not len(self.labels):
-            print("Number of images & label are not the same.")
+            raise Exception("Number of images & label are not the same.")
             return
 
     def __len__(self):
@@ -50,7 +50,7 @@ class UAVIDDataset4K(Dataset):
 
     @staticmethod
     def resize_image(image):
-        resizer = Resize([2160, 3840], antialias="True")
+        resizer = Resize([2160, 3840], antialias=True)
         return resizer(image)
 
     @staticmethod
@@ -265,7 +265,67 @@ class LungDataset(Dataset):
         return read_image(image_path, ImageReadMode.RGB)
 
 
+class CardiacDataset(Dataset):
+    dataset_labels = [
+        "background",
+        "lung",
+        "heart",
+    ]
+
+    def __init__(self, directory_path: str, is_train=True):
+        directory = Path(directory_path)
+        if is_train:
+            self.images = [
+                str(x.absolute()) for x in directory.glob("train/image/*.png")
+            ]
+            self.labels = [
+                str(x.absolute()) for x in directory.glob("train/label/*.png")
+            ]
+        else:
+            self.images = [
+                str(x.absolute()) for x in directory.glob("test/image/*.png")
+            ]
+            self.labels = [
+                str(x.absolute()) for x in directory.glob("test/label/*.png")
+            ]
+
+        if len(self.images) != len(self.labels):
+            raise Exception("Number of images & label are not the same.")
+
+    def __len__(self):
+        return len(self.images)
+
+    @staticmethod
+    def label_0and1(label):
+        return label.float()
+
+    @staticmethod
+    def image_0and1(image):
+        return (image / 255).float()
+
+    @staticmethod
+    def mask_label(label):
+        labels = []
+        labels.append((label[0] == 0) & (label[1] == 0) & (label[2] == 0))
+        labels.append((label[0] == 128) & (label[1] == 0) & (label[2] == 0))
+        labels.append((label[0] == 128) & (label[1] == 64) & (label[2] == 128))
+        return torch.stack(labels)
+
+    def __getitem__(self, index):
+        image = read_image(self.images[index], ImageReadMode.RGB)
+        image = self.image_0and1(image)
+        label = read_image(self.labels[index], ImageReadMode.RGB)
+        label = self.mask_label(label)
+        label = self.label_0and1(label)
+        return image, label
+
+
 # print('hello')
 # dataset = LungDataset(directory='data/lung_segmentation')
+# for x, y in dataset:
+#     print(x.min(), y.min(), x.max(), y.max())
+
+# print("hello")
+# dataset = CardiacDataset(directory_path="data/cardiac")
 # for x, y in dataset:
 #     print(x.min(), y.min(), x.max(), y.max())

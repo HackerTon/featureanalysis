@@ -50,7 +50,7 @@ class DatasetProcessor:
         return resize(
             image,
             size=[512, 512],
-            interpolation=InterpolationMode.BICUBIC,
+            interpolation=InterpolationMode.NEAREST,
             antialias=True,
         )
 
@@ -113,7 +113,6 @@ class DatasetProcessor:
         )
 
         image = read_image(image_path, ImageReadMode.RGB)
-        image = DatasetProcessor.resize_image(image)
         mask = DatasetProcessor.generate_mask(
             rle_lung_left,
             rle_lung_right,
@@ -121,6 +120,8 @@ class DatasetProcessor:
             height,
             width,
         )
+
+        image = DatasetProcessor.resize_image(image)
         mask = DatasetProcessor.resize_image(mask)
         new_image_path = DatasetProcessor.generate_new_name(
             output_directory.joinpath("image"),
@@ -130,8 +131,8 @@ class DatasetProcessor:
             output_directory.joinpath("label"),
             image_path,
         )
-        write_png(image, new_image_path)
-        write_png(mask, new_label_path)
+        write_png(image.cpu(), new_image_path)
+        write_png(mask.cpu(), new_label_path)
 
     def process(self):
         output_image_path = (
@@ -172,17 +173,16 @@ class DatasetProcessor:
             )
 
         print("Start Generating")
-        # total_len = len(jobs_data)
         with ProcessPoolExecutor() as executor:
-            for index in tqdm(executor.map(self._process, jobs_data)):
+            for _ in tqdm(executor.map(self._process, jobs_data), total=len(jobs_data)):
                 pass
 
 
 def process_images(path):
     train_images_processor = DatasetProcessor(path=path, is_train=True)
-    test_images_processor = DatasetProcessor(path=path, is_train=False)
+    # test_images_processor = DatasetProcessor(path=path, is_train=False)
     train_images_processor.process()
-    test_images_processor.process()
+    # test_images_processor.process()
 
 
 if __name__ == "__main__":

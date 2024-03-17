@@ -318,8 +318,6 @@ class Trainer:
                 running_loss = 0.0
                 running_iou = 0.0
 
-            break
-
     def _eval_one_epoch(
         self,
         epoch: int,

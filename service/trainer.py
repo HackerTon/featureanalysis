@@ -435,9 +435,11 @@ def create_cardiac_dataloader_traintest(
     seed: int = 12345678,
 ) -> Tuple[DataLoader, DataLoader]:
     global_dataset = CardiacDataset(directory_path=path)
-    generator = torch.Generator().manual_seed(seed=seed)
+    generator = torch.Generator().manual_seed(seed)
     train_dataset, test_dataset = random_split(
-        global_dataset, [0.8, 0.2], generator=generator
+        global_dataset,
+        [0.8, 0.2],
+        generator=generator,
     )
     train_dataloader = DataLoader(
         train_dataset,

@@ -272,23 +272,10 @@ class CardiacDataset(Dataset):
         "heart",
     ]
 
-    def __init__(self, directory_path: str, is_train=True):
+    def __init__(self, directory_path: str):
         directory = Path(directory_path)
-        if is_train:
-            self.images = [
-                str(x.absolute()) for x in directory.glob("train/image/*.png")
-            ]
-            self.labels = [
-                str(x.absolute()) for x in directory.glob("train/label/*.png")
-            ]
-        else:
-            self.images = [
-                str(x.absolute()) for x in directory.glob("test/image/*.png")
-            ]
-            self.labels = [
-                str(x.absolute()) for x in directory.glob("test/label/*.png")
-            ]
-
+        self.images = [str(x.absolute()) for x in directory.glob("train/image/*.png")]
+        self.labels = [str(x.absolute()) for x in directory.glob("train/label/*.png")]
         if len(self.images) != len(self.labels):
             raise Exception("Number of images & label are not the same.")
 

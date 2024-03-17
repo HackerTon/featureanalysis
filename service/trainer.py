@@ -1,10 +1,12 @@
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
+import math
 import torch
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import random_split
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
 
@@ -159,14 +161,10 @@ class Trainer:
             )
         elif experiment_num == 5:
             # Initialization
-            train_dataloader = create_cardiac_dataloader_train(
+            train_dataloader, test_dataloader = create_cardiac_dataloader_traintest(
                 path=hyperparameter.data_path,
                 batch_size=hyperparameter.batch_size_train,
             )
-            # test_dataloader = create_test_dataloader(
-            #     path=hyperparameter.data_path,
-            #     batch_size=hyperparameter.batch_size_test,
-            # )
             model = MultiNet(numberClass=3, backboneType=BackboneType.RESNET50)
             optimizer = torch.optim.Adam(
                 params=model.parameters(),
@@ -183,7 +181,7 @@ class Trainer:
                 epochs=hyperparameter.epoch,
                 model=model,
                 dataloader_train=train_dataloader,
-                dataloader_test=None,
+                dataloader_test=test_dataloader,
                 optimizer=optimizer,
                 loss_fn=total_loss,
                 preprocess=preprocess,
@@ -212,9 +210,9 @@ class Trainer:
             print(f"Training epoch {epoch + 1}, ", end="")
 
             # Unfreze on second epoch
-            if epoch == 1:
+            if epoch == 2:
                 # Unfreeze backbone
-                model: FPNNetwork = model
+                model: FPNNetwork
                 for parameter in model.backbone.parameters():
                     parameter.requires_grad = True
 
@@ -431,33 +429,42 @@ def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
     return test_dataloader
 
 
-def create_cardiac_dataloader_train(path: str, batch_size: int) -> DataLoader:
-    training_data = CardiacDataset(directory_path=path, is_train=True)
+def create_cardiac_dataloader_traintest(
+    path: str,
+    batch_size: int,
+    seed: int = 12345678,
+) -> Tuple[DataLoader, DataLoader]:
+    global_dataset = CardiacDataset(directory_path=path)
+    generator = torch.Generator().manual_seed(seed=seed)
+    train_dataset, test_dataset = random_split(
+        global_dataset, [0.8, 0.2], generator=generator
+    )
     train_dataloader = DataLoader(
-        training_data,
+        train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
     )
-    return train_dataloader
-
-
-def create_cardiac_dataloader_test(path: str, batch_size: int) -> DataLoader:
-    test_data = CardiacDataset(directory_path=path, is_train=False)
     test_dataloader = DataLoader(
-        test_data,
+        test_dataset,
         batch_size=batch_size,
         num_workers=4,
         pin_memory=True,
     )
-    return test_dataloader
+    return (train_dataloader, test_dataloader)
 
 
 # from torchvision.io import write_png
-# training_data = CardiacDataset(directory_path='data/cardiac', is_train=True)
+# global_dataset = CardiacDataset(directory_path='data/cardiac', is_train=True)
+# generator = torch.Generator().manual_seed(42)
+# train_dataset, test_dataset = random_split(global_dataset, [0.8, 0.2], generator=generator)
+
+# print(len(train_dataset), len(test_dataset))
+
+
 # train_dataloader = DataLoader(
-#     training_data,
+#     train_dataset,
 #     batch_size=1,
 #     shuffle=False,
 #     num_workers=0,

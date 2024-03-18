@@ -1,12 +1,14 @@
 import argparse
+import time
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
+import h5py
+import pandas as pd
 import torch
-from torchvision.io import encode_png, read_image, write_png, ImageReadMode
+from torchvision.io import ImageReadMode, read_image, write_png
 from torchvision.transforms.functional import InterpolationMode, resize
 from tqdm import tqdm
-import pandas as pd
 
 
 class JobData:
@@ -173,20 +175,99 @@ class DatasetProcessor:
             )
 
         print("Start Generating")
-        with ProcessPoolExecutor() as executor:
+        with ProcessPoolExecutor(max_workers=1) as executor:
             for _ in tqdm(executor.map(self._process, jobs_data), total=len(jobs_data)):
                 pass
 
+    def process_hdf5(self, output_directory: str):
+        output_image_path = Path(output_directory)
+        if not output_image_path.exists():
+            output_image_path.mkdir()
 
-def process_images(path):
+        images = [x for x in self.images]
+        jobs_data = []
+        for image_path in images:
+            image_name = image_path.name
+            selected_row = self.csv.loc[image_name]
+            left_lung_rle = selected_row["Left Lung"]
+            right_lung_rle = selected_row["Right Lung"]
+            heart_rle = selected_row["Heart"]
+            height = selected_row["Height"]
+            width = selected_row["Width"]
+            jobs_data.append(
+                JobData(
+                    image=str(image_path),
+                    mask_lung_left=left_lung_rle,
+                    mask_lung_right=right_lung_rle,
+                    mask_heart=heart_rle,
+                    height=height,
+                    width=width,
+                    output_directory=None,
+                )
+            )
+
+        print("Start Generating")
+        hdf5_file = h5py.File(
+            str(output_image_path.joinpath("train.hdf5")),
+            "w",
+        )
+
+        dataset_images = hdf5_file.create_dataset(
+            "image",
+            shape=(len(jobs_data), 3, 512, 512),
+            dtype="i1",
+        )
+        dataset_labels = hdf5_file.create_dataset(
+            "label",
+            shape=(len(jobs_data), 3, 512, 512),
+            dtype="i1",
+        )
+
+        for idx, job in enumerate(tqdm(jobs_data, total=len(jobs_data))):
+            (
+                image_path,
+                rle_lung_left,
+                rle_lung_right,
+                rle_heart,
+                height,
+                width,
+            ) = (
+                job.image,
+                job.rle_lung_left,
+                job.rle_lung_right,
+                job.rle_heart,
+                job.height,
+                job.width,
+            )
+
+            image = read_image(image_path, ImageReadMode.RGB)
+            mask = DatasetProcessor.generate_mask(
+                rle_lung_left,
+                rle_lung_right,
+                rle_heart,
+                height,
+                width,
+            )
+
+            image = DatasetProcessor.resize_image(image)
+            mask = DatasetProcessor.resize_image(mask)
+            dataset_images[idx] = image
+            dataset_labels[idx] = mask
+
+        hdf5_file.close()
+
+
+def process_images(path, output_path):
     train_images_processor = DatasetProcessor(path=path, is_train=True)
     # test_images_processor = DatasetProcessor(path=path, is_train=False)
-    train_images_processor.process()
+    # train_images_processor.process()
+    train_images_processor.process_hdf5(output_directory=output_path)
     # test_images_processor.process()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--path", required=True, help="path to uavid directory")
+    parser.add_argument("-o", "--output", required=True, help="output directory")
     parsed: argparse.Namespace = parser.parse_args()
-    process_images(path=parsed.path)
+    process_images(path=parsed.path, output_path=parsed.output)

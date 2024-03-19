@@ -88,6 +88,18 @@ class DatasetProcessor:
             dtype=torch.uint8,
         )
         return output_image.permute([2, 0, 1])
+    
+    @staticmethod
+    def generate_mask_hdf5(rle_lung_left, rle_lung_right, rle_heart, height, width):
+        mask_lung_left = DatasetProcessor.rle_to_mask(
+            rle_lung_left, height=height, width=width
+        )
+        mask_lung_right = DatasetProcessor.rle_to_mask(
+            rle_lung_right, height=height, width=width
+        )
+        mask_heart = DatasetProcessor.rle_to_mask(rle_heart, height=height, width=width)
+        background = torch.abs(mask_lung_left + mask_lung_right + mask_heart - 255)
+        return torch.stack([background, mask_lung_left + mask_lung_right, background])
 
     @staticmethod
     def generate_new_name(root: Path, path):
@@ -241,7 +253,7 @@ class DatasetProcessor:
             )
 
             image = read_image(image_path, ImageReadMode.RGB)
-            mask = DatasetProcessor.generate_mask(
+            mask = DatasetProcessor.generate_mask_hdf5(
                 rle_lung_left,
                 rle_lung_right,
                 rle_heart,

@@ -10,7 +10,7 @@ from torch.utils.data import random_split
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
 
-from dataloader.dataloader import CardiacDataset, LungDataset
+from dataloader.dataloader import CardiacDataset, LungDataset, CardiacDatasetHDF5
 from loss import dice_index, total_loss
 from model.model import BackboneType, FPNNetwork, MultiNet, UNETNetwork
 from service.hyperparamater import Hyperparameter
@@ -434,7 +434,7 @@ def create_cardiac_dataloader_traintest(
     batch_size: int,
     seed: int = 12345678,
 ) -> Tuple[DataLoader, DataLoader]:
-    global_dataset = CardiacDataset(directory_path=path)
+    global_dataset = CardiacDatasetHDF5(data_path=path)
     generator = torch.Generator().manual_seed(seed)
     train_dataset, test_dataset = random_split(
         global_dataset,

@@ -1,11 +1,12 @@
 import json
 from pathlib import Path
 
+import h5py
 import torch
 from torch.utils.data import Dataset
-from torchvision.io import read_image, ImageReadMode
+from torchvision.io import ImageReadMode, read_image
 from torchvision.transforms import RandomCrop, Resize
-from torchvision.transforms.functional import crop, resize, InterpolationMode
+from torchvision.transforms.functional import InterpolationMode, crop, resize
 
 
 class UAVIDDataset4K(Dataset):
@@ -305,6 +306,37 @@ class CardiacDataset(Dataset):
         label = self.mask_label(label)
         label = self.label_0and1(label)
         return image, label
+
+
+class CardiacDatasetHDF5(Dataset):
+    dataset_labels = [
+        "background",
+        "lung",
+        "heart",
+    ]
+
+    def __init__(self, data_path: str):
+        self.data_path = data_path
+        self.dataset_image = None
+        self.dataset_label = None
+        with h5py.File(data_path, "r") as file:
+            self.dataset_length = len(file["image"])
+
+    def __len__(self):
+        return self.dataset_length
+
+    @staticmethod
+    def image_0and1(image):
+        return (torch.tensor(image) / 255).float()
+
+    def __getitem__(self, index):
+        if self.dataset_image is None and self.dataset_label is None:
+            self.dataset_image = h5py.File(self.data_path, "r")["image"]
+            self.dataset_label = h5py.File(self.data_path, "r")["label"]
+
+        return CardiacDatasetHDF5.image_0and1(
+            self.dataset_image[index]
+        ), CardiacDatasetHDF5.image_0and1(self.dataset_label[index])
 
 
 # print('hello')

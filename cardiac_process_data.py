@@ -98,8 +98,10 @@ class DatasetProcessor:
             rle_lung_right, height=height, width=width
         )
         mask_heart = DatasetProcessor.rle_to_mask(rle_heart, height=height, width=width)
-        background = torch.abs(mask_lung_left + mask_lung_right + mask_heart - 255)
-        return torch.stack([background, mask_lung_left + mask_lung_right, mask_heart])
+        mask_lung = mask_lung_left + mask_lung_right
+        foreground = (mask_lung + mask_heart) - (mask_lung * mask_heart)
+        background = torch.abs(255 - foreground)
+        return torch.stack([background, mask_lung, mask_heart])
 
     @staticmethod
     def generate_new_name(root: Path, path):
@@ -265,7 +267,6 @@ class DatasetProcessor:
             mask = DatasetProcessor.resize_image(mask)
             dataset_images[idx] = image
             dataset_labels[idx] = mask
-
         hdf5_file.close()
 
 

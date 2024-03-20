@@ -9,6 +9,7 @@ import torch
 from torchvision.io import ImageReadMode, read_image, write_png
 from torchvision.transforms.functional import InterpolationMode, resize
 from tqdm import tqdm
+import numpy as np
 
 
 class JobData:
@@ -193,14 +194,56 @@ class DatasetProcessor:
             for _ in tqdm(executor.map(self._process, jobs_data), total=len(jobs_data)):
                 pass
 
-    def process_hdf5(self, output_directory: str):
+    def process_hdf5_image(self, output_directory: str):
         output_image_path = Path(output_directory)
         if not output_image_path.exists():
             output_image_path.mkdir()
 
         images = [x for x in self.images]
-        jobs_data = []
-        for image_path in images:
+
+        print("Start Generating")
+        hdf5_file = h5py.File(
+            str(output_image_path.joinpath("train_image.hdf5")),
+            "w",
+        )
+        dataset_images = hdf5_file.create_dataset(
+            "image",
+            shape=(len(images), 3, 512, 512),
+            dtype=np.uint8,
+        )
+        for idx, image_path in enumerate(tqdm(images, total=len(images))):
+            image_name = image_path.name
+            selected_row = self.csv.loc[image_name]
+            # left_lung_rle = selected_row["Left Lung"]
+            # right_lung_rle = selected_row["Right Lung"]
+            # heart_rle = selected_row["Heart"]
+            # height = selected_row["Height"]
+            # width = selected_row["Width"]
+
+            image = read_image(str(image_path), ImageReadMode.RGB)
+            image = DatasetProcessor.resize_image(image)
+            dataset_images[idx] = image
+        hdf5_file.close()
+
+    def process_hdf5_label(self, output_directory: str):
+        output_image_path = Path(output_directory)
+        if not output_image_path.exists():
+            output_image_path.mkdir(parents=True)
+
+        images = [x for x in self.images]
+
+        print("Start Generating")
+        hdf5_file = h5py.File(
+            str(output_image_path.joinpath("train_label.hdf5")),
+            "w",
+        )
+        dataset_labels = hdf5_file.create_dataset(
+            "label",
+            shape=(len(images), 3, 512, 512),
+            dtype=np.uint8,
+        )
+
+        for idx, image_path in enumerate(tqdm(images, total=len(images))):
             image_name = image_path.name
             selected_row = self.csv.loc[image_name]
             left_lung_rle = selected_row["Left Lung"]
@@ -208,64 +251,15 @@ class DatasetProcessor:
             heart_rle = selected_row["Heart"]
             height = selected_row["Height"]
             width = selected_row["Width"]
-            jobs_data.append(
-                JobData(
-                    image=str(image_path),
-                    mask_lung_left=left_lung_rle,
-                    mask_lung_right=right_lung_rle,
-                    mask_heart=heart_rle,
-                    height=height,
-                    width=width,
-                    output_directory=None,
-                )
-            )
 
-        print("Start Generating")
-        hdf5_file = h5py.File(
-            str(output_image_path.joinpath("train.hdf5")),
-            "w",
-        )
-
-        dataset_images = hdf5_file.create_dataset(
-            "image",
-            shape=(len(jobs_data), 3, 512, 512),
-            dtype="i1",
-        )
-        dataset_labels = hdf5_file.create_dataset(
-            "label",
-            shape=(len(jobs_data), 3, 512, 512),
-            dtype="i1",
-        )
-
-        for idx, job in enumerate(tqdm(jobs_data, total=len(jobs_data))):
-            (
-                image_path,
-                rle_lung_left,
-                rle_lung_right,
-                rle_heart,
-                height,
-                width,
-            ) = (
-                job.image,
-                job.rle_lung_left,
-                job.rle_lung_right,
-                job.rle_heart,
-                job.height,
-                job.width,
-            )
-
-            image = read_image(image_path, ImageReadMode.RGB)
             mask = DatasetProcessor.generate_mask_hdf5(
-                rle_lung_left,
-                rle_lung_right,
-                rle_heart,
+                left_lung_rle,
+                right_lung_rle,
+                heart_rle,
                 height,
                 width,
             )
-
-            image = DatasetProcessor.resize_image(image)
             mask = DatasetProcessor.resize_image(mask)
-            dataset_images[idx] = image
             dataset_labels[idx] = mask
         hdf5_file.close()
 
@@ -274,7 +268,8 @@ def process_images(path, output_path):
     train_images_processor = DatasetProcessor(path=path, is_train=True)
     # test_images_processor = DatasetProcessor(path=path, is_train=False)
     # train_images_processor.process()
-    train_images_processor.process_hdf5(output_directory=output_path)
+    # train_images_processor.process_hdf5_image(output_directory=output_path)
+    train_images_processor.process_hdf5_label(output_directory=output_path)
     # test_images_processor.process()
 
 

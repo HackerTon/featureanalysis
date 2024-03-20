@@ -332,10 +332,10 @@ class CardiacDatasetHDF5(Dataset):
     def __getitem__(self, index):
         if self.dataset_image is None and self.dataset_label is None:
             self.dataset_image = h5py.File(
-                str(self.data_path.joinpath("train_image.hd5f")), "r"
+                str(self.data_path.joinpath("train_image.hdf5")), "r"
             )["image"]
             self.dataset_label = h5py.File(
-                str(self.data_path.joinpath("train_label.hd5f")), "r"
+                str(self.data_path.joinpath("train_label.hdf5")), "r"
             )["label"]
 
         return CardiacDatasetHDF5.image_0and1(

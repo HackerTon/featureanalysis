@@ -319,7 +319,7 @@ class CardiacDatasetHDF5(Dataset):
         self.data_path = Path(data_path)
         self.dataset_image = None
         self.dataset_label = None
-        with h5py.File(str(self.data_path.joinpath("train_label.hdf5")), "r") as file:
+        with h5py.File(str(self.data_path.joinpath("train_image.hdf5")), "r") as file:
             self.dataset_length = len(file["image"])
 
     def __len__(self):

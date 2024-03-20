@@ -327,7 +327,7 @@ class CardiacDatasetHDF5(Dataset):
 
     @staticmethod
     def image_0and1(image):
-        return (torch.tensor(image) / 255).float()
+        return (torch.tensor(image, dtype=torch.uint8) / 255).float()
 
     def __getitem__(self, index):
         if self.dataset_image is None and self.dataset_label is None:

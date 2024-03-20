@@ -292,7 +292,7 @@ class Trainer:
 
                 outputs = model(inputs)
                 loss = loss_fn(outputs, labels)
-                iou_score = dice_index(outputs.softmax(1), labels)
+                iou_score = dice_index(outputs.sigmoid(), labels)
 
             scaler.scale(loss).backward()
             scaler.step(optimizer=optimizer)
@@ -344,7 +344,7 @@ class Trainer:
                     inputs = preprocess(inputs)
                     outputs = model(inputs)
                     loss = loss_fn(outputs, labels)
-                    iou_score = dice_index(outputs.softmax(1), labels)
+                    iou_score = dice_index(outputs.sigmoid(), labels)
 
                 sum_loss += loss.item()
                 sum_iou += iou_score.item()

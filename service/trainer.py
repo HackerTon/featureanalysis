@@ -1,16 +1,15 @@
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple, Union
 
-import math
 import torch
-from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import random_split
+from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
 
-from dataloader.dataloader import CardiacDataset, LungDataset, CardiacDatasetHDF5
+from dataloader.dataloader import CardiacDatasetHDF5, LungDataset
 from loss import dice_index, total_loss
 from model.model import BackboneType, FPNNetwork, MultiNet, UNETNetwork
 from service.hyperparamater import Hyperparameter
@@ -288,6 +287,8 @@ class Trainer:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
+                inputs = (inputs / 255).float()
+                labels = (labels / 255).float()
                 inputs = preprocess(inputs)
 
                 outputs = model(inputs)
@@ -332,19 +333,22 @@ class Trainer:
         sum_iou = 0.0
 
         with torch.no_grad():
-            for data in dataloader:
-                with torch.autocast(device_type=device, dtype=dtype):
-                    inputs: torch.Tensor
-                    labels: torch.Tensor
-                    inputs, labels = data
+            with torch.autocast(device_type=device, dtype=dtype):
+                for data in dataloader:
+                    with torch.autocast(device_type=device, dtype=dtype):
+                        inputs: torch.Tensor
+                        labels: torch.Tensor
+                        inputs, labels = data
 
-                    inputs = inputs.to(device)
-                    labels = labels.to(device)
+                        inputs = inputs.to(device)
+                        labels = labels.to(device)
+                        inputs = (inputs / 255).float()
+                        labels = (labels / 255).float()
 
-                    inputs = preprocess(inputs)
-                    outputs = model(inputs)
-                    loss = loss_fn(outputs, labels)
-                    iou_score = dice_index(outputs.sigmoid(), labels)
+                        inputs = preprocess(inputs)
+                        outputs = model(inputs)
+                        loss = loss_fn(outputs, labels)
+                        iou_score = dice_index(outputs.sigmoid(), labels)
 
                 sum_loss += loss.item()
                 sum_iou += iou_score.item()
@@ -373,8 +377,11 @@ class Trainer:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
+                inputs = (inputs / 255).float()
+                labels = (labels / 255).float()
                 inputs = preprocess(inputs)
-                outputs = model(inputs).cpu()
+
+                outputs = model(inputs)
                 colors = torch.tensor(
                     [
                         [0, 0, 0],
@@ -413,7 +420,6 @@ def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
         batch_size=batch_size,
         shuffle=True,
         num_workers=4,
-        pin_memory=True,
     )
     return train_dataloader
 
@@ -424,7 +430,6 @@ def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
         test_data,
         batch_size=batch_size,
         num_workers=4,
-        pin_memory=True,
     )
     return test_dataloader
 
@@ -446,13 +451,11 @@ def create_cardiac_dataloader_traintest(
         batch_size=batch_size,
         shuffle=True,
         num_workers=4,
-        pin_memory=True,
     )
     test_dataloader = DataLoader(
         test_dataset,
         batch_size=batch_size,
         num_workers=4,
-        pin_memory=True,
     )
     return (train_dataloader, test_dataloader)
 

@@ -325,9 +325,9 @@ class CardiacDatasetHDF5(Dataset):
     def __len__(self):
         return self.dataset_length
 
-    @staticmethod
-    def image_0and1(image):
-        return (torch.tensor(image, dtype=torch.uint8) / 255).float()
+    # @staticmethod
+    # def image_0and1(image):
+    #     return (torch.tensor(image, dtype=torch.uint8) / 255).float()
 
     def __getitem__(self, index):
         if self.dataset_image is None and self.dataset_label is None:
@@ -338,9 +338,11 @@ class CardiacDatasetHDF5(Dataset):
                 str(self.data_path.joinpath("train_label.hdf5")), "r"
             )["label"]
 
-        return CardiacDatasetHDF5.image_0and1(
-            self.dataset_image[index]
-        ), CardiacDatasetHDF5.image_0and1(self.dataset_label[index])
+        return torch.tensor(self.dataset_image[index]), torch.tensor(self.dataset_label[index])
+
+        # return CardiacDatasetHDF5.image_0and1(
+        #     self.dataset_image[index]
+        # ), CardiacDatasetHDF5.image_0and1(self.dataset_label[index])
 
 
 # print('hello')

@@ -41,15 +41,17 @@ class Trainer:
                 batch_size=hyperparameter.batch_size_train,
             )
             model = MultiNet(numberClass=3, backboneType=BackboneType.RESNET50)
-            optimizer = torch.optim.Adam(
-                params=model.parameters(),
-                lr=hyperparameter.learning_rate,
-            )
             preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 
             # Move weights to specified device
             model = model.to(device)
             preprocess = preprocess.to(device)
+
+            optimizer = torch.optim.Adam(
+                params=model.parameters(),
+                lr=hyperparameter.learning_rate,
+                fused=True,
+            )
 
             # Run
             self.train(

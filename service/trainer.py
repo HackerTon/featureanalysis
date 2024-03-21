@@ -284,11 +284,8 @@ class Trainer:
                 labels: torch.Tensor
                 inputs, labels = data
 
-                inputs = inputs.to(device)
-                labels = labels.to(device)
-
-                inputs = (inputs / 255).float()
-                labels = (labels / 255).float()
+                inputs = inputs.to(device).float() / 255
+                labels = labels.to(device).float() / 255
                 inputs = preprocess(inputs)
 
                 outputs = model(inputs)
@@ -340,12 +337,10 @@ class Trainer:
                         labels: torch.Tensor
                         inputs, labels = data
 
-                        inputs = inputs.to(device)
-                        labels = labels.to(device)
-                        inputs = (inputs / 255).float()
-                        labels = (labels / 255).float()
-
+                        inputs = inputs.to(device).float() / 255
+                        labels = labels.to(device).float() / 255
                         inputs = preprocess(inputs)
+
                         outputs = model(inputs)
                         loss = loss_fn(outputs, labels)
                         iou_score = dice_index(outputs.sigmoid(), labels)
@@ -374,11 +369,10 @@ class Trainer:
                 labels: torch.Tensor
                 inputs, labels = data
 
-                inputs = inputs.to(device)
-                labels = labels.to(device)
-
-                inputs = (inputs / 255).float()
-                labels = (labels / 255).float()
+                # inputs = torch.tensor(inputs, device=device, dtype=torch.float)
+                # labels = torch.tensor(labels, device=device, dtype=torch.float)
+                inputs = inputs.to(device).float() / 255
+                labels = labels.to(device).float() / 255
                 inputs = preprocess(inputs)
 
                 outputs = model(inputs)
@@ -396,16 +390,20 @@ class Trainer:
                     dtype=torch.uint8,
                 )
                 grouth_truth_image = combine_channels(labels[0], colors, False)
-                grouth_truth_image = grouth_truth_image[..., [2, 1, 0]].cpu()
+                grouth_truth_image = grouth_truth_image[..., [2, 1, 0]]
                 predicted_image = combine_channels(outputs[0], colors, True)
-                predicted_image = predicted_image[..., [2, 1, 0]].cpu()
+                predicted_image = predicted_image[..., [2, 1, 0]]
                 input_image = torch.permute(data[0][0], [1, 2, 0])
 
                 iteration = (epoch + 1) * train_dataset_length
                 self.writer_test.add_images(
                     tag="images",
                     img_tensor=torch.stack(
-                        [input_image, grouth_truth_image / 255, predicted_image / 255]
+                        [
+                            input_image / 255,
+                            grouth_truth_image / 255,
+                            predicted_image / 255,
+                        ]
                     ),
                     global_step=iteration,
                     dataformats="NHWC",

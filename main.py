@@ -10,6 +10,7 @@ def run(
     device: str,
     batch_size: int,
     path: str,
+    path2: str,
     experiment_num: int,
     learning_rate: float,
 ):
@@ -24,6 +25,7 @@ def run(
         batch_size_test=16,
         batch_size_train=batch_size,
         data_path=path,
+        data_path2=path2,
     )
     trainer.run_trainer(
         device=device,
@@ -38,6 +40,7 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--mode", default="cpu", type=str)
     parser.add_argument("-bs", "--batchsize", default=1, type=int)
     parser.add_argument("-p", "--path", required=True, type=str)
+    parser.add_argument("-p2", "--path2", required=True, type=str)
     parser.add_argument("-l", "--learning_rate", default=0.001, type=float)
     parser.add_argument(
         "-x",
@@ -53,6 +56,7 @@ if __name__ == "__main__":
         device=parsed_data.mode,
         batch_size=parsed_data.batchsize,
         path=parsed_data.path,
+        path2=parsed_data.path2,
         experiment_num=parsed_data.experiment,
         learning_rate=parsed_data.learning_rate,
     )

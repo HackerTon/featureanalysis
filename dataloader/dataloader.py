@@ -315,8 +315,9 @@ class CardiacDatasetHDF5(Dataset):
         "heart",
     ]
 
-    def __init__(self, data_path: str):
+    def __init__(self, data_path: str, data_path2: str):
         self.data_path = Path(data_path)
+        self.data_path2 = Path(data_path2)
         self.dataset_image = None
         self.dataset_label = None
         with h5py.File(str(self.data_path.joinpath("train_image.hdf5")), "r") as file:
@@ -335,7 +336,7 @@ class CardiacDatasetHDF5(Dataset):
                 str(self.data_path.joinpath("train_image.hdf5")), "r"
             )["image"]
             self.dataset_label = h5py.File(
-                str(self.data_path.joinpath("train_label.hdf5")), "r"
+                str(self.data_path2.joinpath("train_label.hdf5")), "r"
             )["label"]
         return self.dataset_image[index], self.dataset_label[index]
 

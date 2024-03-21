@@ -28,140 +28,16 @@ class Trainer:
         self.train_report_rate = train_report_rate
 
     def run_trainer(
-        self, device: str, hyperparameter: Hyperparameter, experiment_num: int
+        self,
+        device: str,
+        hyperparameter: Hyperparameter,
+        experiment_num: int,
     ):
-        if experiment_num == 1:
-            # Initialization
-            train_dataloader = create_train_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_train,
-            )
-            test_dataloader = create_test_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_test,
-            )
-            model = UNETNetwork(numberClass=2)
-            optimizer = torch.optim.Adam(
-                params=model.parameters(),
-                lr=hyperparameter.learning_rate,
-            )
-            preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-
-            # Move weights to specified device
-            model = model.to(device)
-            preprocess = preprocess.to(device)
-
-            # Run
-            self.train(
-                epochs=hyperparameter.epoch,
-                model=model,
-                dataloader_train=train_dataloader,
-                dataloader_test=test_dataloader,
-                optimizer=optimizer,
-                loss_fn=total_loss,
-                preprocess=preprocess,
-                device=device,
-            )
-        elif experiment_num == 2:
-            # Initialization
-            train_dataloader = create_train_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_train,
-            )
-            test_dataloader = create_test_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_test,
-            )
-            model = FPNNetwork(numberClass=2)
-            optimizer = torch.optim.SGD(
-                params=model.parameters(),
-                lr=hyperparameter.learning_rate,
-            )
-            preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-
-            # Move weights to specified device
-            model = model.to(device)
-            preprocess = preprocess.to(device)
-
-            # Run
-            self.train(
-                epochs=hyperparameter.epoch,
-                model=model,
-                dataloader_train=train_dataloader,
-                dataloader_test=test_dataloader,
-                optimizer=optimizer,
-                loss_fn=total_loss,
-                preprocess=preprocess,
-                device=device,
-            )
-        elif experiment_num == 3:
-            # Initialization
-            train_dataloader = create_train_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_train,
-            )
-            test_dataloader = create_test_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_test,
-            )
-            model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET34)
-            optimizer = torch.optim.SGD(
-                params=model.parameters(),
-                lr=hyperparameter.learning_rate,
-            )
-            preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-
-            # Move weights to specified device
-            model = model.to(device)
-            preprocess = preprocess.to(device)
-
-            # Run
-            self.train(
-                epochs=hyperparameter.epoch,
-                model=model,
-                dataloader_train=train_dataloader,
-                dataloader_test=train_dataloader,
-                optimizer=optimizer,
-                loss_fn=total_loss,
-                preprocess=preprocess,
-                device=device,
-            )
-        elif experiment_num == 4:
-            # Initialization
-            train_dataloader = create_train_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_train,
-            )
-            test_dataloader = create_test_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_test,
-            )
-            model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET50)
-            optimizer = torch.optim.SGD(
-                params=model.parameters(),
-                lr=hyperparameter.learning_rate,
-            )
-            preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-
-            # Move weights to specified device
-            model = model.to(device)
-            preprocess = preprocess.to(device)
-
-            # Run
-            self.train(
-                epochs=hyperparameter.epoch,
-                model=model,
-                dataloader_train=train_dataloader,
-                dataloader_test=test_dataloader,
-                optimizer=optimizer,
-                loss_fn=total_loss,
-                preprocess=preprocess,
-                device=device,
-            )
-        elif experiment_num == 5:
+        if experiment_num == 5:
             # Initialization
             train_dataloader, test_dataloader = create_cardiac_dataloader_traintest(
                 path=hyperparameter.data_path,
+                path2=hyperparameter.data_path2,
                 batch_size=hyperparameter.batch_size_train,
             )
             model = MultiNet(numberClass=3, backboneType=BackboneType.RESNET50)
@@ -369,8 +245,6 @@ class Trainer:
                 labels: torch.Tensor
                 inputs, labels = data
 
-                # inputs = torch.tensor(inputs, device=device, dtype=torch.float)
-                # labels = torch.tensor(labels, device=device, dtype=torch.float)
                 inputs = inputs.to(device).float() / 255
                 labels = labels.to(device).float() / 255
                 inputs = preprocess(inputs)
@@ -434,10 +308,11 @@ def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
 
 def create_cardiac_dataloader_traintest(
     path: str,
+    path2: str,
     batch_size: int,
     seed: int = 12345678,
 ) -> Tuple[DataLoader, DataLoader]:
-    global_dataset = CardiacDatasetHDF5(data_path=path)
+    global_dataset = CardiacDatasetHDF5(data_path=path, data_path2=path2)
     generator = torch.Generator().manual_seed(seed)
     train_dataset, test_dataset = random_split(
         global_dataset,
@@ -448,12 +323,12 @@ def create_cardiac_dataloader_traintest(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=4,
+        num_workers=1,
     )
     test_dataloader = DataLoader(
         test_dataset,
         batch_size=batch_size,
-        num_workers=4,
+        num_workers=1,
     )
     return (train_dataloader, test_dataloader)
 

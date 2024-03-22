@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional, Tuple, Union
 
 import torch
-from torch.utils.data import random_split
+from torch.utils.data import random_split, SequentialSampler
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
@@ -210,18 +210,17 @@ class Trainer:
         with torch.no_grad():
             with torch.autocast(device_type=device, dtype=dtype):
                 for data in dataloader:
-                    with torch.autocast(device_type=device, dtype=dtype):
-                        inputs: torch.Tensor
-                        labels: torch.Tensor
-                        inputs, labels = data
+                    inputs: torch.Tensor
+                    labels: torch.Tensor
+                    inputs, labels = data
 
-                        inputs = inputs.to(device).float() / 255
-                        labels = labels.to(device).float() / 255
-                        inputs = preprocess(inputs)
+                    inputs = inputs.to(device).float() / 255
+                    labels = labels.to(device).float() / 255
+                    inputs = preprocess(inputs)
 
-                        outputs = model(inputs)
-                        loss = loss_fn(outputs, labels)
-                        iou_score = dice_index(outputs.sigmoid(), labels)
+                    outputs = model(inputs)
+                    loss = loss_fn(outputs, labels)
+                    iou_score = dice_index(outputs.sigmoid(), labels)
 
                 sum_loss += loss.item()
                 sum_iou += iou_score.item()
@@ -325,7 +324,7 @@ def create_cardiac_dataloader_traintest(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        num_workers=1,
+        num_workers=4,
     )
     test_dataloader = DataLoader(
         test_dataset,

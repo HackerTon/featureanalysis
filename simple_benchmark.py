@@ -360,10 +360,18 @@ def run_benchmark():
     baseline_diff = time.time() - initial_time
 
     initial_time = time.time()
-    for _ in range(100):
-        random_sample = torch.randn([STRESS_BATCH, 3, 512, 512], device=device)
-        model(random_sample)
-    stressed_diff = time.time() - initial_time
+    if device == "cuda":
+        with torch.autocast(device, dtype=torch.float16):
+            for _ in range(100):
+                random_sample = torch.randn([STRESS_BATCH, 3, 512, 512], device=device)
+                model(random_sample)
+        stressed_diff = time.time() - initial_time
+    else:
+        for _ in range(100):
+            random_sample = torch.randn([STRESS_BATCH, 3, 512, 512], device=device)
+            model(random_sample)
+        stressed_diff = time.time() - initial_time
+
     print(baseline_diff / BASELINE_BATCH)
     print(stressed_diff / STRESS_BATCH)
 

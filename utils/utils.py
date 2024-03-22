@@ -6,9 +6,9 @@ from dataloader.dataloader import UAVIDDataset
 
 
 def combine_channels(image: torch.Tensor, colors: torch.Tensor, is_predict: bool):
-    _, h, w = image.shape
+    c, h, w = image.shape
     output_image = torch.zeros([h, w, 3], dtype=torch.uint8)
-    for i in range(colors.shape[0]):
+    for i in range(c):
         if is_predict:
             mask = image[i] > 0.5
         else:

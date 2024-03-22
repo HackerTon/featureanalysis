@@ -222,8 +222,8 @@ class Trainer:
                     loss = loss_fn(outputs, labels)
                     iou_score = dice_index(outputs.sigmoid(), labels)
 
-                sum_loss += loss.item()
-                sum_iou += iou_score.item()
+                    sum_loss += loss.item()
+                    sum_iou += iou_score.item()
 
         iteration = (epoch + 1) * train_dataset_length
         avg_loss = sum_loss / len(dataloader)
@@ -256,11 +256,11 @@ class Trainer:
                         [0, 0, 0],
                         [0, 0, 128],
                         [128, 64, 128],
-                        # [0, 128, 0],
-                        # [0, 128, 128],
-                        # [128, 0, 64],
-                        # [192, 0, 192],
-                        # [128, 0, 0],
+                        [0, 128, 0],
+                        [0, 128, 128],
+                        [128, 0, 64],
+                        [192, 0, 192],
+                        [128, 0, 0],
                     ],
                     dtype=torch.uint8,
                 )
@@ -329,7 +329,7 @@ def create_cardiac_dataloader_traintest(
     test_dataloader = DataLoader(
         test_dataset,
         batch_size=batch_size,
-        num_workers=1,
+        num_workers=4,
     )
     return (train_dataloader, test_dataloader)
 

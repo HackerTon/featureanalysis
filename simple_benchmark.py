@@ -349,12 +349,23 @@ def run_benchmark():
     model = model.to(device)
     preprocess = preprocess.to(device)
 
-    print('Start Benchmark!')
+    print("Start Benchmark!")
+    BASELINE_BATCH = 16
+    STRESS_BATCH = 32
+
     initial_time = time.time()
     for _ in range(100):
-        random_sample = torch.randn([16, 3, 512, 512], device=device)
-        output = model(random_sample)
-    print(f"TimeTaken: {time.time() - initial_time}")
+        random_sample = torch.randn([BASELINE_BATCH, 3, 512, 512], device=device)
+        model(random_sample)
+    baseline_diff = time.time() - initial_time
+
+    initial_time = time.time()
+    for _ in range(100):
+        random_sample = torch.randn([STRESS_BATCH, 3, 512, 512], device=device)
+        model(random_sample)
+    stressed_diff = time.time() - initial_time
+    print(baseline_diff / BASELINE_BATCH)
+    print(stressed_diff / STRESS_BATCH)
 
 
 if __name__ == "__main__":

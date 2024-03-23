@@ -1,24 +1,29 @@
+import math
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
 import torch
-from torch.utils.data import random_split, SequentialSampler
+from torch.utils.data import random_split, BatchSampler, RandomSampler, Subset
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
+from torchvision.utils import draw_segmentation_masks
 
 from dataloader.dataloader import CardiacDatasetHDF5, LungDataset
 from loss import dice_index, total_loss
-from model.model import BackboneType, FPNNetwork, MultiNet, UNETNetwork
+from model.model import BackboneType, MultiNet
 from service.hyperparamater import Hyperparameter
 from service.model_saver_service import ModelSaverService
 from utils.utils import combine_channels
 
 
 class Trainer:
-    def __init__(self, train_report_rate=1000) -> None:
+    def __init__(self, train_report_rate: float = 0.50) -> None:
+        """
+        train_report_rate: float = [0.0, 1.0]
+        """
         timestamp = datetime.now().strftime(r"%Y%m%d_%H%M%S")
         self.writer_train = SummaryWriter(
             "data/log/training/train_{}".format(timestamp)
@@ -86,10 +91,8 @@ class Trainer:
         for epoch in range(epochs):
             print(f"Training epoch {epoch + 1}, ", end="")
 
-            # Unfreze on second epoch
+            # Unfreeze backbone at epoch 2
             if epoch == 2:
-                # Unfreeze backbone
-                model: FPNNetwork
                 for parameter in model.backbone.parameters():
                     parameter.requires_grad = True
 
@@ -118,17 +121,6 @@ class Trainer:
                     train_dataset_length=len(dataloader_train),
                     dtype=dtype,
                 )
-
-            if dataloader_test is None:
-                self._visualize_one_epoch(
-                    epoch=epoch,
-                    model=model,
-                    dataloader=dataloader_train,
-                    preprocess=preprocess,
-                    train_dataset_length=len(dataloader_train),
-                    device=device,
-                )
-            else:
                 self._visualize_one_epoch(
                     epoch=epoch,
                     model=model,
@@ -153,6 +145,7 @@ class Trainer:
         device: str,
         dtype,
     ):
+        rate_to_print = math.floor(len(dataloader) * self.train_report_rate)
         running_loss = 0.0
         running_iou = 0.0
         scaler = torch.cuda.amp.grad_scaler.GradScaler()
@@ -178,7 +171,7 @@ class Trainer:
             running_loss += loss.item()
             running_iou += iou_score.item()
 
-            if index % self.train_report_rate == (self.train_report_rate - 1):
+            if index % rate_to_print == (rate_to_print - 1):
                 current_training_sample = epoch * len(dataloader) + index + 1
                 self.writer_train.add_scalar(
                     "loss",
@@ -246,42 +239,42 @@ class Trainer:
                 labels: torch.Tensor
                 inputs, labels = data
 
+                original_image = inputs
                 inputs = inputs.to(device).float() / 255
-                labels = labels.to(device).float() / 255
                 inputs = preprocess(inputs)
 
                 outputs = model(inputs)
-                colors = torch.tensor(
-                    [
-                        [0, 0, 0],
-                        [0, 0, 128],
-                        [128, 64, 128],
-                        [0, 128, 0],
-                        [0, 128, 128],
-                        [128, 0, 64],
-                        [192, 0, 192],
-                        [128, 0, 0],
-                    ],
-                    dtype=torch.uint8,
-                )
-                grouth_truth_image = combine_channels(labels[0], colors, False)
-                grouth_truth_image = grouth_truth_image[..., [2, 1, 0]]
-                predicted_image = combine_channels(outputs[0], colors, True)
-                predicted_image = predicted_image[..., [2, 1, 0]]
-                input_image = torch.permute(data[0][0], [1, 2, 0])
+                colors = [
+                    (0, 0, 0),
+                    (0, 0, 128),
+                    (128, 64, 128),
+                    (0, 128, 0),
+                    (0, 128, 128),
+                    (128, 0, 64),
+                    (192, 0, 192),
+                    (128, 0, 0),
+                ]
+
+                visualization_image = original_image[0]
+                for i in range(outputs.size(1)):
+                    visualization_image = draw_segmentation_masks(
+                        visualization_image,
+                        outputs[0, i] > 0.5,
+                        colors=colors[i],
+                        alpha=0.5,
+                    )
+                    visualization_image = draw_segmentation_masks(
+                        visualization_image,
+                        labels[0, i] > 127,
+                        colors=colors[i],
+                        alpha=0.9,
+                    )
 
                 iteration = (epoch + 1) * train_dataset_length
-                self.writer_test.add_images(
+                self.writer_test.add_image(
                     tag="images",
-                    img_tensor=torch.stack(
-                        [
-                            input_image / 255,
-                            grouth_truth_image / 255,
-                            predicted_image / 255,
-                        ]
-                    ),
+                    img_tensor=visualization_image,
                     global_step=iteration,
-                    dataformats="NHWC",
                 )
                 break
 
@@ -314,11 +307,19 @@ def create_cardiac_dataloader_traintest(
     seed: int = 12345678,
 ) -> Tuple[DataLoader, DataLoader]:
     global_dataset = CardiacDatasetHDF5(data_path=path, data_path2=path2)
-    generator = torch.Generator().manual_seed(seed)
-    train_dataset, test_dataset = random_split(
+    SPLIT_PERCENTAGE = 0.8
+    train_dataset = Subset(
         global_dataset,
-        [0.8, 0.2],
-        generator=generator,
+        [x for x in range(math.floor(len(global_dataset) * SPLIT_PERCENTAGE))],
+    )
+    test_dataset = Subset(
+        global_dataset,
+        [
+            x
+            for x in range(
+                math.floor(len(global_dataset) * SPLIT_PERCENTAGE), len(global_dataset)
+            )
+        ],
     )
     train_dataloader = DataLoader(
         train_dataset,
@@ -335,21 +336,49 @@ def create_cardiac_dataloader_traintest(
 
 
 # from torchvision.io import write_png
-# global_dataset = CardiacDataset(directory_path='data/cardiac', is_train=True)
+
+# global_dataset = CardiacDatasetHDF5(
+#     data_path="/Volumes/storage", data_path2="/Volumes/storage"
+# )
 # generator = torch.Generator().manual_seed(42)
-# train_dataset, test_dataset = random_split(global_dataset, [0.8, 0.2], generator=generator)
+# # train_dataset, test_dataset = random_split(
+# #     global_dataset, [0.8, 0.2], generator=generator
+# # )
+
+# split_percentage = 0.8
+# train_dataset = Subset(
+#     global_dataset, [x for x in range(math.floor(len(global_dataset) * split_percentage))]
+# )
+# test_dataset = Subset(
+#     global_dataset,
+#     [x for x in range(math.floor(len(global_dataset) * split_percentage), len(global_dataset))],
+# )
 
 # print(len(train_dataset), len(test_dataset))
 
 
 # train_dataloader = DataLoader(
-#     train_dataset,
+#     global_dataset,
+#     shuffle=True,
 #     batch_size=1,
-#     shuffle=False,
 #     num_workers=0,
 #     pin_memory=True,
 # )
-# for x, y in train_dataloader:
-#     print(x.shape, y.shape)
-#     write_png((y[0, 1] * 255).to(torch.uint8).unsqueeze(0), 'test.png')
+
+# for idx, (x, y) in enumerate(train_dataset):
 #     break
+
+# initial_time = time.time()
+# for idx, (x, y) in enumerate(global_dataset):
+#     if idx == 1000:
+#         print(x.shape)
+#         break
+# print(time.time() - initial_time)
+
+
+# initial_time = time.time()
+# for idx, (x, y) in enumerate(train_dataloader):
+#     if idx == 1000:
+#         print(x.shape)
+#         break
+# print(time.time() - initial_time)

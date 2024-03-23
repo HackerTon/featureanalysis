@@ -55,7 +55,7 @@ class Trainer:
             optimizer = torch.optim.Adam(
                 params=model.parameters(),
                 lr=hyperparameter.learning_rate,
-                fused=True,
+                fused=True if device == "cuda" else False,
             )
 
             # Run
@@ -239,13 +239,13 @@ class Trainer:
                 labels: torch.Tensor
                 inputs, labels = data
 
-                original_image = inputs.clone()
+                original_image = inputs
                 inputs = inputs.to(device).float() / 255
                 inputs = preprocess(inputs)
 
                 outputs = model(inputs)
                 colors = [
-                    (0, 0, 0),
+                    # (0, 0, 0),
                     (0, 0, 128),
                     (128, 64, 128),
                     (0, 128, 0),
@@ -333,6 +333,7 @@ def create_cardiac_dataloader_traintest(
         num_workers=4,
     )
     return (train_dataloader, test_dataloader)
+
 
 # train_dataloader, test_dataloader = create_cardiac_dataloader_traintest(path='/Volumes/storage', path2='/Volumes/storage', batch_size=32)
 

@@ -175,12 +175,12 @@ class Trainer:
                 current_training_sample = epoch * len(dataloader) + index + 1
                 self.writer_train.add_scalar(
                     "loss",
-                    running_loss / self.train_report_rate,
+                    running_loss / rate_to_print,
                     current_training_sample,
                 )
                 self.writer_train.add_scalar(
                     "iou_score",
-                    running_iou / self.train_report_rate,
+                    running_iou / rate_to_print,
                     current_training_sample,
                 )
                 running_loss = 0.0

@@ -239,7 +239,7 @@ class Trainer:
                 labels: torch.Tensor
                 inputs, labels = data
 
-                original_image = inputs
+                original_image = inputs.clone()
                 inputs = inputs.to(device).float() / 255
                 inputs = preprocess(inputs)
 
@@ -259,15 +259,15 @@ class Trainer:
                 for i in range(outputs.size(1)):
                     visualization_image = draw_segmentation_masks(
                         visualization_image,
-                        outputs[0, i] > 0.5,
-                        colors=colors[i],
-                        alpha=0.5,
-                    )
-                    visualization_image = draw_segmentation_masks(
-                        visualization_image,
                         labels[0, i] > 127,
                         colors=colors[i],
                         alpha=0.9,
+                    )
+                    visualization_image = draw_segmentation_masks(
+                        visualization_image,
+                        outputs[0, i] > 0.5,
+                        colors=colors[i],
+                        alpha=0.5,
                     )
 
                 iteration = (epoch + 1) * train_dataset_length
@@ -324,7 +324,7 @@ def create_cardiac_dataloader_traintest(
     train_dataloader = DataLoader(
         train_dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=False,
         num_workers=4,
     )
     test_dataloader = DataLoader(
@@ -334,46 +334,27 @@ def create_cardiac_dataloader_traintest(
     )
     return (train_dataloader, test_dataloader)
 
+# train_dataloader, test_dataloader = create_cardiac_dataloader_traintest(path='/Volumes/storage', path2='/Volumes/storage', batch_size=32)
 
-# from torchvision.io import write_png
+# # print(len(train_dataset), len(test_dataset))
 
-# global_dataset = CardiacDatasetHDF5(
-#     data_path="/Volumes/storage", data_path2="/Volumes/storage"
-# )
-# generator = torch.Generator().manual_seed(42)
-# # train_dataset, test_dataset = random_split(
-# #     global_dataset, [0.8, 0.2], generator=generator
+# # train_dataloader = DataLoader(
+# #     global_dataset,
+# #     shuffle=True,
+# #     batch_size=1,
+# #     num_workers=0,
+# #     pin_memory=True,
 # # )
 
-# split_percentage = 0.8
-# train_dataset = Subset(
-#     global_dataset, [x for x in range(math.floor(len(global_dataset) * split_percentage))]
-# )
-# test_dataset = Subset(
-#     global_dataset,
-#     [x for x in range(math.floor(len(global_dataset) * split_percentage), len(global_dataset))],
-# )
+# # for idx, (x, y) in enumerate(train_dataset):
+# #     break
 
-# print(len(train_dataset), len(test_dataset))
-
-
-# train_dataloader = DataLoader(
-#     global_dataset,
-#     shuffle=True,
-#     batch_size=1,
-#     num_workers=0,
-#     pin_memory=True,
-# )
-
-# for idx, (x, y) in enumerate(train_dataset):
-#     break
-
-# initial_time = time.time()
-# for idx, (x, y) in enumerate(global_dataset):
-#     if idx == 1000:
-#         print(x.shape)
-#         break
-# print(time.time() - initial_time)
+# # initial_time = time.time()
+# # for idx, (x, y) in enumerate(global_dataset):
+# #     if idx == 1000:
+# #         print(x.shape)
+# #         break
+# # print(time.time() - initial_time)
 
 
 # initial_time = time.time()

@@ -18,7 +18,7 @@ def run(
         print(f"Dataset not found in '{path}'")
         return
 
-    trainer = Trainer(train_report_rate=5)
+    trainer = Trainer(train_report_rate=0.1)
     hyperparameter = Hyperparameter(
         epoch=epoch,
         learning_rate=learning_rate,

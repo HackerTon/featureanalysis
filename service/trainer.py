@@ -98,7 +98,7 @@ class Trainer:
 
             # Switch optimizer to SGD
             if epoch == 10:
-                optimizer = torch.optim.SGD(model.parameters(), lr=1e-5)
+                optimizer = torch.optim.SGD(model.parameters(), lr=1e-7)
 
             initial_time = time.time()
             self._train_one_epoch(

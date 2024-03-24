@@ -96,6 +96,10 @@ class Trainer:
                 for parameter in model.backbone.parameters():
                     parameter.requires_grad = True
 
+            # Switch optimizer to SGD
+            if epoch == 10:
+                optimizer = torch.optim.SGD(model.parameters(), lr=1e-5)
+
             initial_time = time.time()
             self._train_one_epoch(
                 epoch=epoch,
@@ -256,12 +260,12 @@ class Trainer:
                 ]
 
                 visualization_image = original_image[0]
-                for i in range(outputs.size(1)):
+                for i in range(1, outputs.size(1)):
                     visualization_image = draw_segmentation_masks(
                         visualization_image,
                         labels[0, i] > 127,
-                        colors=colors[i],
-                        alpha=0.9,
+                        colors=colors[i + 2],
+                        alpha=0.5,
                     )
                     visualization_image = draw_segmentation_masks(
                         visualization_image,

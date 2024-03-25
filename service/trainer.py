@@ -264,14 +264,14 @@ class Trainer:
                     visualization_image = draw_segmentation_masks(
                         visualization_image,
                         labels[0, i] > 127,
-                        colors=colors[i + 2],
-                        alpha=0.5,
+                        colors=colors[i],
+                        alpha=0.6,
                     )
                     visualization_image = draw_segmentation_masks(
                         visualization_image,
                         outputs[0, i] > 0.5,
                         colors=colors[i],
-                        alpha=0.5,
+                        alpha=0.3,
                     )
 
                 iteration = (epoch + 1) * train_dataset_length

@@ -261,12 +261,14 @@ class Trainer:
 
                 visualization_image = original_image[0]
                 for i in range(1, outputs.size(1)):
+                    # Visualization for label
                     visualization_image = draw_segmentation_masks(
                         visualization_image,
                         labels[0, i] > 127,
                         colors=colors[i],
                         alpha=0.6,
                     )
+                    # Visualization for prediction
                     visualization_image = draw_segmentation_masks(
                         visualization_image,
                         outputs[0, i] > 0.5,

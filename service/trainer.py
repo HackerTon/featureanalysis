@@ -249,7 +249,7 @@ class Trainer:
 
                 outputs = model(inputs)
                 colors = [
-                    # (0, 0, 0),
+                    (0, 0, 0),
                     (0, 0, 128),
                     (128, 64, 128),
                     (0, 128, 0),
@@ -312,18 +312,12 @@ def create_cardiac_dataloader_traintest(
 ) -> Tuple[DataLoader, DataLoader]:
     global_dataset = CardiacDatasetHDF5(data_path=path, data_path2=path2)
     SPLIT_PERCENTAGE = 0.8
-    train_dataset = Subset(
+
+    generator = torch.Generator().manual_seed(seed)
+    train_dataset, test_dataset = random_split(
         global_dataset,
-        [x for x in range(math.floor(len(global_dataset) * SPLIT_PERCENTAGE))],
-    )
-    test_dataset = Subset(
-        global_dataset,
-        [
-            x
-            for x in range(
-                math.floor(len(global_dataset) * SPLIT_PERCENTAGE), len(global_dataset)
-            )
-        ],
+        [SPLIT_PERCENTAGE, 1 - SPLIT_PERCENTAGE],
+        generator,
     )
     train_dataloader = DataLoader(
         train_dataset,
@@ -336,7 +330,7 @@ def create_cardiac_dataloader_traintest(
         batch_size=batch_size,
         num_workers=4,
     )
-    return (train_dataloader, test_dataloader)
+    return train_dataloader, test_dataloader
 
 
 # train_dataloader, test_dataloader = create_cardiac_dataloader_traintest(path='/Volumes/storage', path2='/Volumes/storage', batch_size=32)

@@ -238,7 +238,7 @@ class Trainer:
         train_dataset_length: int,
     ):
         with torch.no_grad():
-            for data in dataloader:
+            for data in dataloader.dataset[:1]:
                 inputs: torch.Tensor
                 labels: torch.Tensor
                 inputs, labels = data
@@ -282,28 +282,6 @@ class Trainer:
                     img_tensor=visualization_image,
                     global_step=iteration,
                 )
-                break
-
-
-def create_train_dataloader(path: str, batch_size: int) -> DataLoader:
-    training_data = LungDataset(directory=path, is_train=True)
-    train_dataloader = DataLoader(
-        training_data,
-        batch_size=batch_size,
-        shuffle=True,
-        num_workers=4,
-    )
-    return train_dataloader
-
-
-def create_test_dataloader(path: str, batch_size: int) -> DataLoader:
-    test_data = LungDataset(directory=path, is_train=False)
-    test_dataloader = DataLoader(
-        test_data,
-        batch_size=batch_size,
-        num_workers=4,
-    )
-    return test_dataloader
 
 
 def create_cardiac_dataloader_traintest(

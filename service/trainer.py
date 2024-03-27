@@ -5,18 +5,17 @@ from pathlib import Path
 from typing import Optional, Tuple, Union
 
 import torch
-from torch.utils.data import random_split, BatchSampler, RandomSampler, Subset
+from torch.utils.data import random_split
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
-from torchvision.transforms import Normalize
+from torchvision.transforms import v2
 from torchvision.utils import draw_segmentation_masks
 
-from dataloader.dataloader import CardiacDatasetHDF5, LungDataset
+from dataloader.dataloader import CardiacDatasetHDF5
 from loss import dice_index, total_loss
 from model.model import BackboneType, MultiNet
 from service.hyperparamater import Hyperparameter
 from service.model_saver_service import ModelSaverService
-from utils.utils import combine_channels
 
 
 class Trainer:
@@ -46,11 +45,12 @@ class Trainer:
                 batch_size=hyperparameter.batch_size_train,
             )
             model = MultiNet(numberClass=3, backboneType=BackboneType.RESNET50)
-            preprocess = Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            preprocessor = v2.Compose(
+                [v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])]
+            )
 
             # Move weights to specified device
             model = model.to(device)
-            preprocess = preprocess.to(device)
 
             optimizer = torch.optim.Adam(
                 params=model.parameters(),
@@ -80,7 +80,7 @@ class Trainer:
         dataloader_test: Optional[DataLoader],
         optimizer: torch.optim.Optimizer,
         loss_fn,
-        preprocess,
+        preprocess: v2.Compose,
         device: str,
     ):
         if torch.cuda.is_available():
@@ -95,10 +95,6 @@ class Trainer:
             if epoch == 2:
                 for parameter in model.backbone.parameters():
                     parameter.requires_grad = True
-
-            # Switch optimizer to SGD
-            if epoch == 10:
-                optimizer = torch.optim.SGD(model.parameters(), lr=1e-7)
 
             initial_time = time.time()
             self._train_one_epoch(
@@ -145,7 +141,7 @@ class Trainer:
         dataloader: DataLoader,
         optimizer: torch.optim.Optimizer,
         loss_fn,
-        preprocess,
+        preprocess: v2.Compose,
         device: str,
         dtype,
     ):
@@ -195,7 +191,7 @@ class Trainer:
         epoch: int,
         model: torch.nn.Module,
         dataloader: DataLoader,
-        preprocess,
+        preprocess: v2.Compose,
         loss_fn,
         device: str,
         train_dataset_length: int,
@@ -234,7 +230,7 @@ class Trainer:
         model: torch.nn.Module,
         dataloader: DataLoader,
         device: Union[torch.device, str],
-        preprocess,
+        preprocess: v2.Compose,
         train_dataset_length: int,
     ):
         with torch.no_grad():

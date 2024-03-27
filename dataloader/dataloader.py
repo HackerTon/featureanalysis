@@ -8,7 +8,6 @@ from torchvision.io import ImageReadMode, read_image
 from torchvision.transforms import RandomCrop, Resize
 from torchvision.transforms.functional import InterpolationMode, crop, resize
 
-
 class UAVIDDataset4K(Dataset):
     dataset_labels = [
         "background",
@@ -244,17 +243,6 @@ class LungDataset(Dataset):
     def __getitem__(self, index):
         image = self.decode_image(str(self.images[index]))
         label = self.decode_image_gray(str(self.labels[index]))
-        if not self.is_train:
-            image = resize(image, [512, 512], interpolation=InterpolationMode.NEAREST)
-            label = resize(label, [512, 512], interpolation=InterpolationMode.NEAREST)
-        else:
-            i, j, h, w = RandomCrop.get_params(image, (256, 256))
-            image = crop(image, i, j, h, w)
-            label = crop(label, i, j, h, w)
-        image = image.float() / 255
-        label = label.float() / 255
-        label = torch.cat([label, torch.abs(1 - label)])
-
         return image, label
 
     @staticmethod
@@ -335,10 +323,6 @@ class CardiacDatasetHDF5(Dataset):
                 str(self.data_path2.joinpath("train_label.hdf5")), "r"
             )["label"]
         return self.dataset_image[index], self.dataset_label[index]
-
-        return CardiacDatasetHDF5.image_0and1(
-            self.dataset_image[index]
-        ), CardiacDatasetHDF5.image_0and1(self.dataset_label[index])
 
 
 # print('hello')

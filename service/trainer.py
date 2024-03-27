@@ -234,7 +234,7 @@ class Trainer:
         train_dataset_length: int,
     ):
         with torch.no_grad():
-            for data in dataloader.dataset[:1]:
+            for data in dataloader:
                 inputs: torch.Tensor
                 labels: torch.Tensor
                 inputs, labels = data
@@ -278,6 +278,7 @@ class Trainer:
                     img_tensor=visualization_image,
                     global_step=iteration,
                 )
+                break
 
 
 def create_cardiac_dataloader_traintest(

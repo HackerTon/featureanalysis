@@ -66,7 +66,7 @@ class Trainer:
                 dataloader_test=test_dataloader,
                 optimizer=optimizer,
                 loss_fn=total_loss,
-                preprocess=preprocess,
+                preprocess=preprocessor,
                 device=device,
             )
         else:

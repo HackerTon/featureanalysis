@@ -358,7 +358,7 @@ class Trainer:
                     # Visualization for prediction
                     visualization_image = draw_segmentation_masks(
                         visualization_image,
-                        outputs[0, i] > 0.5,
+                        outputs[0, i].sigmoid() > 0.5,
                         colors=colors[i],
                         alpha=0.3,
                     )
@@ -456,3 +456,20 @@ def create_textocr_dataloader(
         collate_fn=test_collate_fn,
     )
     return train_dataloader, test_dataloader
+
+
+# from torchvision.io import write_png
+
+# train, test = create_textocr_dataloader("data/textocr", 1)
+# preprocessor = v2.Compose(
+#     [
+#         ToNormalized(),
+#         v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+#     ]
+# )
+# for x, y in test:
+#     x, y = preprocessor(x, y)
+#     y = (y * 255).to(torch.uint8)
+#     # write_png(x[0], "test.png")
+#     write_png(y[0, 0].repeat([3, 1, 1]), "test2.png")
+#     break

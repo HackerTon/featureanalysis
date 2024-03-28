@@ -336,7 +336,6 @@ class Trainer:
 
                 outputs = model(inputs)
                 colors = [
-                    (0, 0, 0),
                     (0, 0, 128),
                     (128, 64, 128),
                     (0, 128, 0),
@@ -347,18 +346,18 @@ class Trainer:
                 ]
 
                 visualization_image = original_image[0]
-                for i in range(1, outputs.size(1)):
+                for i in range(outputs.size(1) - 1):
                     # Visualization for label
                     visualization_image = draw_segmentation_masks(
                         visualization_image,
-                        labels[0, i] > 0.5,
+                        labels[0, i + 1] > 0.5,
                         colors=colors[i],
                         alpha=0.6,
                     )
                     # Visualization for prediction
                     visualization_image = draw_segmentation_masks(
                         visualization_image,
-                        outputs[0, i].sigmoid() > 0.5,
+                        outputs[0, i + 1].sigmoid() > 0.5,
                         colors=colors[i],
                         alpha=0.3,
                     )

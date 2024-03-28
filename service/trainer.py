@@ -467,8 +467,17 @@ def create_textocr_dataloader(
 #     ]
 # )
 # for x, y in test:
-#     x, y = preprocessor(x, y)
-#     y = (y * 255).to(torch.uint8)
+#     modify, y = preprocessor(x, y)
+#     # y = (y * 255).to(torch.uint8)
 #     # write_png(x[0], "test.png")
-#     write_png(y[0, 0].repeat([3, 1, 1]), "test2.png")
+
+#     print(y[0, 0].min(), y[0, 0].max())
+#     visualization_image = draw_segmentation_masks(
+#         x[0],
+#         y[0, 0] > 0.5,
+#         colors=(128, 128, 128),
+#         alpha=1.0,
+#     )
+
+#     write_png(visualization_image, "test2.png")
 #     break

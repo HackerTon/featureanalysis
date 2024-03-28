@@ -213,7 +213,7 @@ class TextOCRDataset(Dataset):
                 h,
             )
 
-        mask = torch.cat([mask, torch.abs(1 - mask)])
+        mask = torch.cat([255 - mask, mask])
         return image, mask
 
 

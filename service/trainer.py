@@ -9,9 +9,11 @@ from torch.utils.data import random_split
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import v2
+from torchvision.transforms.v2.functional import InterpolationMode, crop, resize
 from torchvision.utils import draw_segmentation_masks
 
-from dataloader.dataloader import CardiacDatasetHDF5
+from dataloader.dataloader import CardiacDatasetHDF5, TextOCRDataset
+from dataloader.transform import ToNormalized
 from loss import dice_index, total_loss
 from model.model import BackboneType, MultiNet
 from service.hyperparamater import Hyperparameter
@@ -19,7 +21,7 @@ from service.model_saver_service import ModelSaverService
 
 
 class Trainer:
-    def __init__(self, train_report_rate: float = 0.50) -> None:
+    def __init__(self, train_report_rate: float = 0.1) -> None:
         """
         train_report_rate: float = [0.0, 1.0]
         """
@@ -37,7 +39,40 @@ class Trainer:
         hyperparameter: Hyperparameter,
         experiment_num: int,
     ):
-        if experiment_num == 5:
+        if experiment_num == 0:
+            # Initialization
+            train_dataloader, test_dataloader = create_textocr_dataloader(
+                path=hyperparameter.data_path,
+                batch_size=hyperparameter.batch_size_train,
+            )
+            model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET50)
+            preprocessor = v2.Compose(
+                [
+                    ToNormalized(),
+                    v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ]
+            )
+
+            # Move weights to specified device
+            model = model.to(device)
+            optimizer = torch.optim.Adam(
+                params=model.parameters(),
+                lr=hyperparameter.learning_rate,
+                fused=True if device == "cuda" else False,
+            )
+
+            # Run
+            self.train(
+                epochs=hyperparameter.epoch,
+                model=model,
+                dataloader_train=train_dataloader,
+                dataloader_test=test_dataloader,
+                optimizer=optimizer,
+                loss_fn=total_loss,
+                preprocess=preprocessor,
+                device=device,
+            )
+        elif experiment_num == 5:
             # Initialization
             train_dataloader, test_dataloader = create_cardiac_dataloader_traintest(
                 path=hyperparameter.data_path,
@@ -148,43 +183,80 @@ class Trainer:
         rate_to_print = math.floor(len(dataloader) * self.train_report_rate)
         running_loss = 0.0
         running_iou = 0.0
-        scaler = torch.cuda.amp.grad_scaler.GradScaler()
-        for index, data in enumerate(dataloader):
-            with torch.autocast(device_type=device, dtype=dtype):
+
+        if device != "mps":
+            scaler = torch.cuda.amp.grad_scaler.GradScaler()
+            for index, data in enumerate(dataloader):
+                with torch.autocast(
+                    device_type=device, dtype=dtype, enabled=device != "mps"
+                ):
+                    inputs: torch.Tensor
+                    labels: torch.Tensor
+                    inputs, labels = data
+
+                    inputs, labels = inputs.to(device), labels.to(device)
+                    inputs, labels = preprocess(inputs, labels)
+
+                    outputs = model(inputs)
+                    loss = loss_fn(outputs, labels)
+                    iou_score = dice_index(outputs.sigmoid(), labels)
+
+                scaler.scale(loss).backward()
+                scaler.step(optimizer=optimizer)
+                scaler.update()
+                optimizer.zero_grad(set_to_none=True)
+
+                running_loss += loss.item()
+                running_iou += iou_score.item()
+
+                if index % rate_to_print == (rate_to_print - 1):
+                    current_training_sample = epoch * len(dataloader) + index + 1
+                    self.writer_train.add_scalar(
+                        "loss",
+                        running_loss / rate_to_print,
+                        current_training_sample,
+                    )
+                    self.writer_train.add_scalar(
+                        "iou_score",
+                        running_iou / rate_to_print,
+                        current_training_sample,
+                    )
+                    running_loss = 0.0
+                    running_iou = 0.0
+        else:
+            for index, data in enumerate(dataloader):
                 inputs: torch.Tensor
                 labels: torch.Tensor
                 inputs, labels = data
 
-                inputs = inputs.to(device).float() / 255
-                labels = labels.to(device).float() / 255
-                inputs = preprocess(inputs)
+                inputs, labels = inputs.to(device), labels.to(device)
+                inputs, labels = preprocess(inputs, labels)
 
                 outputs = model(inputs)
                 loss = loss_fn(outputs, labels)
                 iou_score = dice_index(outputs.sigmoid(), labels)
 
-            scaler.scale(loss).backward()
-            scaler.step(optimizer=optimizer)
-            scaler.update()
-            optimizer.zero_grad(set_to_none=True)
+                loss.backward()
+                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
 
-            running_loss += loss.item()
-            running_iou += iou_score.item()
+                running_loss += loss.item()
+                running_iou += iou_score.item()
 
-            if index % rate_to_print == (rate_to_print - 1):
-                current_training_sample = epoch * len(dataloader) + index + 1
-                self.writer_train.add_scalar(
-                    "loss",
-                    running_loss / rate_to_print,
-                    current_training_sample,
-                )
-                self.writer_train.add_scalar(
-                    "iou_score",
-                    running_iou / rate_to_print,
-                    current_training_sample,
-                )
-                running_loss = 0.0
-                running_iou = 0.0
+                if index % rate_to_print == (rate_to_print - 1):
+                    current_training_sample = epoch * len(dataloader) + index + 1
+                    self.writer_train.add_scalar(
+                        "loss",
+                        running_loss / rate_to_print,
+                        current_training_sample,
+                    )
+                    self.writer_train.add_scalar(
+                        "iou_score",
+                        running_iou / rate_to_print,
+                        current_training_sample,
+                    )
+                    running_loss = 0.0
+                    running_iou = 0.0
 
     def _eval_one_epoch(
         self,
@@ -200,16 +272,32 @@ class Trainer:
         sum_loss = 0.0
         sum_iou = 0.0
 
-        with torch.no_grad():
-            with torch.autocast(device_type=device, dtype=dtype):
+        if device != "mps":
+            with torch.no_grad():
+                with torch.autocast(device_type=device, dtype=dtype):
+                    for data in dataloader:
+                        inputs: torch.Tensor
+                        labels: torch.Tensor
+                        inputs, labels = data
+
+                        inputs, labels = inputs.to(device), labels.to(device)
+                        inputs, labels = preprocess(inputs, labels)
+
+                        outputs = model(inputs)
+                        loss = loss_fn(outputs, labels)
+                        iou_score = dice_index(outputs.sigmoid(), labels)
+
+                        sum_loss += loss.item()
+                        sum_iou += iou_score.item()
+        else:
+            with torch.no_grad():
                 for data in dataloader:
                     inputs: torch.Tensor
                     labels: torch.Tensor
                     inputs, labels = data
 
-                    inputs = inputs.to(device).float() / 255
-                    labels = labels.to(device).float() / 255
-                    inputs = preprocess(inputs)
+                    inputs, labels = inputs.to(device), labels.to(device)
+                    inputs, labels = preprocess(inputs, labels)
 
                     outputs = model(inputs)
                     loss = loss_fn(outputs, labels)
@@ -239,9 +327,9 @@ class Trainer:
                 labels: torch.Tensor
                 inputs, labels = data
 
+                inputs, labels = inputs.to(device), labels.to(device)
                 original_image = inputs
-                inputs = inputs.to(device).float() / 255
-                inputs = preprocess(inputs)
+                inputs, labels = preprocess(inputs, labels)
 
                 outputs = model(inputs)
                 colors = [
@@ -260,7 +348,7 @@ class Trainer:
                     # Visualization for label
                     visualization_image = draw_segmentation_masks(
                         visualization_image,
-                        labels[0, i] > 127,
+                        labels[0, i] > 0.5,
                         colors=colors[i],
                         alpha=0.6,
                     )
@@ -310,32 +398,58 @@ def create_cardiac_dataloader_traintest(
     return train_dataloader, test_dataloader
 
 
-# train_dataloader, test_dataloader = create_cardiac_dataloader_traintest(path='/Volumes/storage', path2='/Volumes/storage', batch_size=32)
-
-# # print(len(train_dataset), len(test_dataset))
-
-# # train_dataloader = DataLoader(
-# #     global_dataset,
-# #     shuffle=True,
-# #     batch_size=1,
-# #     num_workers=0,
-# #     pin_memory=True,
-# # )
-
-# # for idx, (x, y) in enumerate(train_dataset):
-# #     break
-
-# # initial_time = time.time()
-# # for idx, (x, y) in enumerate(global_dataset):
-# #     if idx == 1000:
-# #         print(x.shape)
-# #         break
-# # print(time.time() - initial_time)
+random_generator = torch.Generator().manual_seed(1234)
+MIN_MAX_CHOICE = torch.tensor([64, 128, 256], dtype=torch.float)
 
 
-# initial_time = time.time()
-# for idx, (x, y) in enumerate(train_dataloader):
-#     if idx == 1000:
-#         print(x.shape)
-#         break
-# print(time.time() - initial_time)
+def train_collate_fn(data):
+    idx = torch.multinomial(
+        input=MIN_MAX_CHOICE,
+        num_samples=1,
+        replacement=True,
+        generator=random_generator,
+    )
+    current_size = MIN_MAX_CHOICE[idx].int().item()
+    images = []
+    labels = []
+    for x in data:
+        image, label = x
+        image = image
+        label = label
+        i, j, h, w = v2.RandomCrop.get_params(image, (current_size, current_size))
+        images.append(crop(image, i, j, h, w))
+        labels.append(crop(label, i, j, h, w))
+    return (torch.stack(images), torch.stack(labels))
+
+
+def test_collate_fn(data):
+    images = []
+    labels = []
+    for x in data:
+        image, label = x
+        image = image
+        label = label
+        images.append(resize(image, [512, 512]))
+        labels.append(resize(label, [512, 512]))
+    return (torch.stack(images), torch.stack(labels))
+
+
+def create_textocr_dataloader(
+    path: str, batch_size: int
+) -> Tuple[DataLoader, DataLoader]:
+    train_dataset = TextOCRDataset(path, True)
+    train_dataloader = DataLoader(
+        train_dataset,
+        shuffle=True,
+        batch_size=batch_size,
+        num_workers=4,
+        collate_fn=train_collate_fn,
+    )
+    test_dataloader = DataLoader(
+        train_dataset,
+        shuffle=False,
+        batch_size=batch_size,
+        num_workers=4,
+        collate_fn=test_collate_fn,
+    )
+    return train_dataloader, test_dataloader

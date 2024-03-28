@@ -5,8 +5,8 @@ import h5py
 import torch
 from torch.utils.data import Dataset
 from torchvision.io import ImageReadMode, read_image
-from torchvision.transforms import RandomCrop, Resize
-from torchvision.transforms.functional import InterpolationMode, crop, resize
+from torchvision.transforms import Resize
+
 
 class UAVIDDataset4K(Dataset):
     dataset_labels = [
@@ -165,29 +165,35 @@ class TextOCRDataset(Dataset):
         self.directory = Path(directory)
         self.images = []
         self.labels = []
-        self.area = []
         if is_train:
             self.decode(
-                file_path=str(self.directory.joinpath("TextOCR_0.1_train.json"))
+                file_path=str(
+                    self.directory.joinpath("TextOCR_0.1_train.json"),
+                )
             )
         else:
-            self.decode(file_path=str(self.directory.joinpath("TextOCR_0.1_val.json")))
+            self.decode(
+                file_path=str(
+                    self.directory.joinpath("TextOCR_0.1_val.json"),
+                ),
+            )
+
+    @staticmethod
+    def decode_image(image_path):
+        return read_image(image_path, ImageReadMode.RGB)
 
     def decode(self, file_path: str):
         validation_label = json.load(open(file_path))
         for image_id, image in validation_label["imgToAnns"].items():
             bounding_box_each_image = []
-            area_sum = 0
             for annotation in image:
                 annot = validation_label["anns"][f"{annotation}"]
                 bounding_box = annot["bbox"]
                 x1, y1 = int(bounding_box[0]), int(bounding_box[1])
                 x2, y2 = x1 + int(bounding_box[2]), y1 + int(bounding_box[3])
                 bounding_box_each_image.append([x1, y1, x2, y2])
-                area_sum += float(annot["area"])
             self.images.append(image_id)
             self.labels.append(bounding_box_each_image)
-            self.area.append(area_sum)
 
     def __len__(self):
         return len(self.images)
@@ -196,23 +202,19 @@ class TextOCRDataset(Dataset):
         image = self.decode_image(
             str(self.directory.joinpath("train_images", f"{self.images[index]}.jpg"))
         )
-        mask = torch.zeros([1, image.size(1), image.size(2)])
+        mask = torch.zeros([1, image.size(1), image.size(2)], dtype=torch.uint8)
+
         for bounding_box in self.labels[index]:
             x1, y1, x2, y2 = bounding_box
             _, w, h = mask[..., y1:y2, x1:x2].size()
-            mask[..., y1:y2, x1:x2] = torch.tensor([1]).repeat(1, w, h)
+            mask[..., y1:y2, x1:x2] = torch.tensor([255]).repeat(
+                1,
+                w,
+                h,
+            )
 
-        i, j, h, w = RandomCrop.get_params(image, (256, 256))
-        # Crop image and label
-        image = crop(image, i, j, h, w)
-        mask = crop(mask, i, j, h, w)
-
-        masked = torch.cat([mask, torch.abs(1 - mask)])
-        return image.to(torch.float32) / 255, masked.to(torch.float32)
-
-    @staticmethod
-    def decode_image(image_path):
-        return read_image(image_path, ImageReadMode.RGB)
+        mask = torch.cat([mask, torch.abs(1 - mask)])
+        return image, mask
 
 
 class LungDataset(Dataset):
@@ -323,14 +325,3 @@ class CardiacDatasetHDF5(Dataset):
                 str(self.data_path2.joinpath("train_label.hdf5")), "r"
             )["label"]
         return self.dataset_image[index], self.dataset_label[index]
-
-
-# print('hello')
-# dataset = LungDataset(directory='data/lung_segmentation')
-# for x, y in dataset:
-#     print(x.min(), y.min(), x.max(), y.max())
-
-# print("hello")
-# dataset = CardiacDataset(directory_path="data/cardiac")
-# for x, y in dataset:
-#     print(x.min(), y.min(), x.max(), y.max())

@@ -324,4 +324,6 @@ class CardiacDatasetHDF5(Dataset):
             self.dataset_label = h5py.File(
                 str(self.data_path2.joinpath("train_label.hdf5")), "r"
             )["label"]
-        return self.dataset_image[index], self.dataset_label[index]
+        return torch.tensor(self.dataset_image[index]), torch.tensor(
+            self.dataset_label[index]
+        )

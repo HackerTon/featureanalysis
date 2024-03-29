@@ -371,35 +371,6 @@ class Trainer:
                 break
 
 
-def create_cardiac_dataloader_traintest(
-    path: str,
-    path2: str,
-    batch_size: int,
-    seed: int = 12345678,
-) -> Tuple[DataLoader, DataLoader]:
-    global_dataset = CardiacDatasetHDF5(data_path=path, data_path2=path2)
-    SPLIT_PERCENTAGE = 0.8
-
-    generator = torch.Generator().manual_seed(seed)
-    train_dataset, test_dataset = random_split(
-        global_dataset,
-        [SPLIT_PERCENTAGE, 1 - SPLIT_PERCENTAGE],
-        generator,
-    )
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        num_workers=4,
-    )
-    test_dataloader = DataLoader(
-        test_dataset,
-        batch_size=batch_size,
-        num_workers=4,
-    )
-    return train_dataloader, test_dataloader
-
-
 random_generator = torch.Generator().manual_seed(1234)
 
 
@@ -432,6 +403,37 @@ def test_collate_fn(data):
     return (torch.stack(images), torch.stack(labels))
 
 
+def create_cardiac_dataloader_traintest(
+    path: str,
+    path2: str,
+    batch_size: int,
+    seed: int = 12345678,
+) -> Tuple[DataLoader, DataLoader]:
+    global_dataset = CardiacDatasetHDF5(data_path=path, data_path2=path2)
+    SPLIT_PERCENTAGE = 0.8
+
+    generator = torch.Generator().manual_seed(seed)
+    train_dataset, test_dataset = random_split(
+        global_dataset,
+        [SPLIT_PERCENTAGE, 1 - SPLIT_PERCENTAGE],
+        generator,
+    )
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        collate_fn=train_collate_fn,
+        num_workers=4,
+    )
+    test_dataloader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        collate_fn=test_collate_fn,
+        num_workers=4,
+    )
+    return train_dataloader, test_dataloader
+
+
 def create_textocr_dataloader(
     path: str, batch_size: int
 ) -> Tuple[DataLoader, DataLoader]:
@@ -455,22 +457,25 @@ def create_textocr_dataloader(
 
 # from torchvision.io import write_png
 
-# train, test = create_textocr_dataloader("data/textocr", 1)
+# # train, test = create_textocr_dataloader("data/textocr", 1)
+# train, test = create_cardiac_dataloader_traintest(
+#     "/Volumes/storage", "/Volumes/storage", 1
+# )
 # preprocessor = v2.Compose(
 #     [
 #         ToNormalized(),
 #         v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 #     ]
 # )
-# for x, y in test:
+# for x, y in train:
 #     modify, y = preprocessor(x, y)
 #     # y = (y * 255).to(torch.uint8)
 #     # write_png(x[0], "test.png")
 
-#     print(y[0, 0].min(), y[0, 0].max())
+#     print(y.shape)
 #     visualization_image = draw_segmentation_masks(
 #         x[0],
-#         y[0, 0] > 0.5,
+#         y[0, 2] > 0.5,
 #         colors=(128, 128, 128),
 #         alpha=1.0,
 #     )

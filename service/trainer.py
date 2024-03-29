@@ -401,17 +401,13 @@ def create_cardiac_dataloader_traintest(
 
 
 random_generator = torch.Generator().manual_seed(1234)
-MIN_MAX_CHOICE = torch.tensor([64, 128, 256], dtype=torch.float)
 
 
 def train_collate_fn(data):
-    idx = torch.multinomial(
-        input=MIN_MAX_CHOICE,
-        num_samples=1,
-        replacement=True,
-        generator=random_generator,
-    )
-    current_size = MIN_MAX_CHOICE[idx].int().item()
+    if torch.rand(1, generator=random_generator)[0] > 0.5:
+        current_size = 256
+    else:
+        current_size = 64
     images = []
     labels = []
     for x in data:

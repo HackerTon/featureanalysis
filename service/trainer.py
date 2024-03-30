@@ -97,7 +97,7 @@ class Trainer:
             )
             scheduler = torch.optim.lr_scheduler.OneCycleLR(
                 optimizer=optimizer,
-                max_lr=0.1,
+                max_lr=hyperparameter.learning_rate,
                 steps_per_epoch=len(train_dataloader),
                 epochs=hyperparameter.epoch,
             )

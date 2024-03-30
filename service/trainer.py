@@ -95,6 +95,12 @@ class Trainer:
                 lr=hyperparameter.learning_rate,
                 fused=True if device == "cuda" else False,
             )
+            scheduler = torch.optim.lr_scheduler.OneCycleLR(
+                optimizer=optimizer,
+                max_lr=0.01,
+                steps_per_epoch=len(train_dataloader),
+                epochs=hyperparameter.epoch,
+            )
 
             # Run
             self.train(
@@ -103,6 +109,7 @@ class Trainer:
                 dataloader_train=train_dataloader,
                 dataloader_test=test_dataloader,
                 optimizer=optimizer,
+                scheduler=scheduler,
                 loss_fn=total_loss,
                 preprocess=preprocessor,
                 device=device,
@@ -120,6 +127,7 @@ class Trainer:
         loss_fn,
         preprocess: v2.Compose,
         device: str,
+        scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
     ):
         if torch.cuda.is_available():
             dtype = torch.float16
@@ -144,6 +152,7 @@ class Trainer:
                 preprocess=preprocess,
                 device=device,
                 dtype=dtype,
+                scheduler=scheduler,
             )
             time_taken = time.time() - initial_time
             print(f"time_taken: {time_taken}s")
@@ -182,6 +191,7 @@ class Trainer:
         preprocess: v2.Compose,
         device: str,
         dtype,
+        scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
     ):
         rate_to_print = math.floor(len(dataloader) * self.train_report_rate)
         running_loss = 0.0
@@ -206,6 +216,7 @@ class Trainer:
 
                 scaler.scale(loss).backward()
                 scaler.step(optimizer=optimizer)
+                scheduler.step()
                 scaler.update()
                 optimizer.zero_grad(set_to_none=True)
 
@@ -241,6 +252,7 @@ class Trainer:
 
                 loss.backward()
                 optimizer.step()
+                scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
 
                 running_loss += loss.item()
@@ -260,6 +272,7 @@ class Trainer:
                     )
                     running_loss = 0.0
                     running_iou = 0.0
+        
 
     def _eval_one_epoch(
         self,

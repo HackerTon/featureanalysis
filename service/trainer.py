@@ -97,7 +97,7 @@ class Trainer:
             )
             scheduler = torch.optim.lr_scheduler.OneCycleLR(
                 optimizer=optimizer,
-                max_lr=0.01,
+                max_lr=0.1,
                 steps_per_epoch=len(train_dataloader),
                 epochs=hyperparameter.epoch,
             )
@@ -272,7 +272,6 @@ class Trainer:
                     )
                     running_loss = 0.0
                     running_iou = 0.0
-        
 
     def _eval_one_epoch(
         self,

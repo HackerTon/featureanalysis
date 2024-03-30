@@ -55,7 +55,7 @@ class Trainer:
 
             # Move weights to specified device
             model = model.to(device)
-            optimizer = torch.optim.Adam(
+            optimizer = torch.optim.AdamW(
                 params=model.parameters(),
                 lr=hyperparameter.learning_rate,
                 fused=True if device == "cuda" else False,
@@ -90,7 +90,7 @@ class Trainer:
             # Move weights to specified device
             model = model.to(device)
 
-            optimizer = torch.optim.Adam(
+            optimizer = torch.optim.AdamW(
                 params=model.parameters(),
                 lr=hyperparameter.learning_rate,
                 fused=True if device == "cuda" else False,
@@ -376,18 +376,25 @@ random_generator = torch.Generator().manual_seed(1234)
 
 def train_collate_fn(data):
     if torch.rand(1, generator=random_generator)[0] > 0.5:
-        current_size = 256
+        current_size = 512
     else:
-        current_size = 64
+        current_size = 256
     images = []
     labels = []
-    for x in data:
-        image, label = x
-        image = image
-        label = label
-        i, j, h, w = v2.RandomCrop.get_params(image, (current_size, current_size))
-        images.append(crop(image, i, j, h, w))
-        labels.append(crop(label, i, j, h, w))
+
+    # If current_size is the same size as input
+    # skip cropping
+    if data[0][0].size(1) == current_size:
+        for x in data:
+            image, label = x
+            images.append(image)
+            labels.append(label)
+    else:
+        for x in data:
+            image, label = x
+            i, j, h, w = v2.RandomCrop.get_params(image, (current_size, current_size))
+            images.append(crop(image, i, j, h, w))
+            labels.append(crop(label, i, j, h, w))
     return (torch.stack(images), torch.stack(labels))
 
 
@@ -408,6 +415,7 @@ def create_cardiac_dataloader_traintest(
     path2: str,
     batch_size: int,
     seed: int = 12345678,
+    num_workers: int = 4,
 ) -> Tuple[DataLoader, DataLoader]:
     global_dataset = CardiacDatasetHDF5(data_path=path, data_path2=path2)
     SPLIT_PERCENTAGE = 0.8
@@ -423,19 +431,19 @@ def create_cardiac_dataloader_traintest(
         batch_size=batch_size,
         shuffle=True,
         collate_fn=train_collate_fn,
-        num_workers=4,
+        num_workers=num_workers,
     )
     test_dataloader = DataLoader(
         test_dataset,
         batch_size=batch_size,
-        collate_fn=test_collate_fn,
-        num_workers=4,
+        num_workers=num_workers,
     )
     return train_dataloader, test_dataloader
 
 
 def create_textocr_dataloader(
-    path: str, batch_size: int
+    path: str,
+    batch_size: int,
 ) -> Tuple[DataLoader, DataLoader]:
     train_dataset = TextOCRDataset(path, True)
     train_dataloader = DataLoader(
@@ -455,30 +463,29 @@ def create_textocr_dataloader(
     return train_dataloader, test_dataloader
 
 
-# from torchvision.io import write_png
-
-# # train, test = create_textocr_dataloader("data/textocr", 1)
 # train, test = create_cardiac_dataloader_traintest(
-#     "/Volumes/storage", "/Volumes/storage", 1
+#     path="/Volumes/storage/",
+#     path2="/Volumes/storage",
+#     batch_size=1,
+#     num_workers=0,
 # )
-# preprocessor = v2.Compose(
-#     [
-#         ToNormalized(),
-#         v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-#     ]
-# )
-# for x, y in train:
-#     modify, y = preprocessor(x, y)
-#     # y = (y * 255).to(torch.uint8)
-#     # write_png(x[0], "test.png")
 
+# n512 = 0
+# n64 = 0
+
+# from torchvision.io import write_jpeg
+
+# for idx, (x, y) in enumerate(train):
 #     print(y.shape)
-#     visualization_image = draw_segmentation_masks(
-#         x[0],
-#         y[0, 2] > 0.5,
-#         colors=(128, 128, 128),
-#         alpha=1.0,
-#     )
 
-#     write_png(visualization_image, "test2.png")
-#     break
+#     if x.size(2) == 512:
+#         n512 += 1
+#     else:
+#         n64 += 1
+
+#     write_jpeg(x[0], "x.jpg")
+
+#     if idx == 0:
+#         break
+
+# print(n512, n64)

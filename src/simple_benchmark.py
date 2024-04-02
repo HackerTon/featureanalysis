@@ -10,7 +10,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import Normalize
 
 from dataloader.dataloader import CardiacDatasetHDF5, LungDataset
-from loss import dice_index, total_loss
+from src.loss import dice_index, total_loss
 from model.model import BackboneType, FPNNetwork, MultiNet, UNETNetwork
 from service.hyperparamater import Hyperparameter
 from service.model_saver_service import ModelSaverService

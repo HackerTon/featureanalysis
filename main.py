@@ -1,8 +1,8 @@
 import argparse
 from pathlib import Path
 
-from service.hyperparamater import Hyperparameter
-from service.trainer import Trainer
+from src.service.hyperparamater import Hyperparameter
+from src.service.trainer import Trainer
 
 
 def run(

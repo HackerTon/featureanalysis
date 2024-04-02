@@ -7,17 +7,18 @@ from typing import Optional, Tuple, Union
 import torch
 from torch.utils.data import random_split
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data import Subset
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import v2
-from torchvision.transforms.v2.functional import InterpolationMode, crop, resize
+from torchvision.transforms.v2.functional import crop, resize
 from torchvision.utils import draw_segmentation_masks
 
-from dataloader.dataloader import CardiacDatasetHDF5, TextOCRDataset
-from dataloader.transform import ToNormalized
-from loss import dice_index, total_loss
-from model.model import BackboneType, MultiNet
-from service.hyperparamater import Hyperparameter
-from service.model_saver_service import ModelSaverService
+from src.dataloader.dataloader import CardiacDatasetHDF5, TextOCRDataset
+from src.dataloader.transform import ToNormalized
+from src.loss import dice_index, total_loss
+from src.model.model import BackboneType, MultiNet
+from src.service.hyperparamater import Hyperparameter
+from src.service.model_saver_service import ModelSaverService
 
 
 class Trainer:
@@ -193,7 +194,7 @@ class Trainer:
         dtype,
         scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
     ):
-        rate_to_print = math.floor(len(dataloader) * self.train_report_rate)
+        rate_to_print = max(math.floor(len(dataloader) * self.train_report_rate), 1)
         running_loss = 0.0
         running_iou = 0.0
 
@@ -216,7 +217,8 @@ class Trainer:
 
                 scaler.scale(loss).backward()
                 scaler.step(optimizer=optimizer)
-                scheduler.step()
+                if scheduler != None:
+                    scheduler.step()
                 scaler.update()
                 optimizer.zero_grad(set_to_none=True)
 
@@ -252,7 +254,8 @@ class Trainer:
 
                 loss.backward()
                 optimizer.step()
-                scheduler.step()
+                if scheduler != None:
+                    scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
 
                 running_loss += loss.item()
@@ -342,7 +345,9 @@ class Trainer:
                 labels: torch.Tensor
                 inputs, labels = data
 
-                inputs, labels = inputs.to(device), labels.to(device)
+                inputs = inputs.to(device)
+                labels = labels.to(device)
+
                 original_image = inputs
                 inputs, labels = preprocess(inputs, labels)
 
@@ -458,6 +463,8 @@ def create_textocr_dataloader(
     batch_size: int,
 ) -> Tuple[DataLoader, DataLoader]:
     train_dataset = TextOCRDataset(path, True)
+    train_dataset = Subset(train_dataset, [x for x in range(1)])
+
     train_dataloader = DataLoader(
         train_dataset,
         shuffle=True,
@@ -465,8 +472,9 @@ def create_textocr_dataloader(
         num_workers=4,
         collate_fn=train_collate_fn,
     )
+    test_dataset = TextOCRDataset(path, False)
     test_dataloader = DataLoader(
-        train_dataset,
+        test_dataset,
         shuffle=False,
         batch_size=batch_size,
         num_workers=4,
@@ -475,29 +483,25 @@ def create_textocr_dataloader(
     return train_dataloader, test_dataloader
 
 
-# train, test = create_cardiac_dataloader_traintest(
-#     path="/Volumes/storage/",
-#     path2="/Volumes/storage",
+# train, test = create_textocr_dataloader(
+#     path="data/textocr",
 #     batch_size=1,
-#     num_workers=0,
 # )
-
-# n512 = 0
-# n64 = 0
 
 # from torchvision.io import write_jpeg
 
-# for idx, (x, y) in enumerate(train):
+# for idx, (x, y) in enumerate(train.dataset):
 #     print(y.shape)
+#     break
 
-#     if x.size(2) == 512:
-#         n512 += 1
-#     else:
-#         n64 += 1
+# if x.size(2) == 512:
+#     n512 += 1
+# else:
+#     n64 += 1
 
-#     write_jpeg(x[0], "x.jpg")
+# write_jpeg(x[0], "x.jpg")
 
-#     if idx == 0:
-#         break
+# if idx == 0:
+#     break
 
 # print(n512, n64)

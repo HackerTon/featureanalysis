@@ -463,7 +463,7 @@ def create_textocr_dataloader(
     batch_size: int,
 ) -> Tuple[DataLoader, DataLoader]:
     train_dataset = TextOCRDataset(path, True)
-    train_dataset = Subset(train_dataset, [x for x in range(1)])
+    # train_dataset = Subset(train_dataset, [x for x in range(1)])
 
     train_dataloader = DataLoader(
         train_dataset,

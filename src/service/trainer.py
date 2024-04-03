@@ -483,8 +483,9 @@ def create_textocr_dataloader(
     return train_dataloader, test_dataloader
 
 
-# train, test = create_textocr_dataloader(
-#     path="data/textocr",
+# train, test = create_cardiac_dataloader_traintest(
+#     path="/Volumes/storage/",
+#     path2="/Volumes/storage/",
 #     batch_size=1,
 # )
 
@@ -494,14 +495,5 @@ def create_textocr_dataloader(
 #     print(y.shape)
 #     break
 
-# if x.size(2) == 512:
-#     n512 += 1
-# else:
-#     n64 += 1
-
-# write_jpeg(x[0], "x.jpg")
-
-# if idx == 0:
-#     break
-
-# print(n512, n64)
+# write_jpeg(x, "x.jpg")
+# write_jpeg(y, "y.jpg")

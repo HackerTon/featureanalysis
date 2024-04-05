@@ -7,16 +7,15 @@ from typing import Optional, Tuple, Union
 import torch
 from torch.utils.data import random_split
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data import Subset
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import v2
 from torchvision.transforms.v2.functional import crop, resize
 from torchvision.utils import draw_segmentation_masks
 
 from src.dataloader.dataloader import CardiacDatasetHDF5, TextOCRDataset
-from src.dataloader.transform import ToNormalized
+from src.experiment.cardiacExperiment import CardiacExperiment
+from src.experiment.textocrExperiment import TextocrExperiment
 from src.loss import dice_index, total_loss
-from src.model.model import BackboneType, MultiNet
 from src.service.hyperparamater import Hyperparameter
 from src.service.model_saver_service import ModelSaverService
 
@@ -41,82 +40,31 @@ class Trainer:
         experiment_num: int,
     ):
         if experiment_num == 0:
-            # Initialization
-            train_dataloader, test_dataloader = create_textocr_dataloader(
-                path=hyperparameter.data_path,
-                batch_size=hyperparameter.batch_size_train,
-            )
-            model = MultiNet(numberClass=2, backboneType=BackboneType.RESNET50)
-            preprocessor = v2.Compose(
-                [
-                    ToNormalized(),
-                    v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                ]
-            )
-
-            # Move weights to specified device
-            model = model.to(device)
-            optimizer = torch.optim.AdamW(
-                params=model.parameters(),
-                lr=hyperparameter.learning_rate,
-                fused=True if device == "cuda" else False,
-            )
-
-            # Run
-            self.train(
-                epochs=hyperparameter.epoch,
-                model=model,
-                dataloader_train=train_dataloader,
-                dataloader_test=test_dataloader,
-                optimizer=optimizer,
-                loss_fn=total_loss,
-                preprocess=preprocessor,
-                device=device,
-            )
+            experiment = TextocrExperiment(hyperparameter=hyperparameter, device=device)
         elif experiment_num == 5:
-            # Initialization
-            train_dataloader, test_dataloader = create_cardiac_dataloader_traintest(
-                path=hyperparameter.data_path,
-                path2=hyperparameter.data_path2,
-                batch_size=hyperparameter.batch_size_train,
-            )
-            model = MultiNet(numberClass=3, backboneType=BackboneType.RESNET50)
-            preprocessor = v2.Compose(
-                [
-                    ToNormalized(),
-                    v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-                ]
-            )
-
-            # Move weights to specified device
-            model = model.to(device)
-
-            optimizer = torch.optim.AdamW(
-                params=model.parameters(),
-                lr=hyperparameter.learning_rate,
-                fused=True if device == "cuda" else False,
-            )
-            scheduler = torch.optim.lr_scheduler.OneCycleLR(
-                optimizer=optimizer,
-                max_lr=hyperparameter.learning_rate,
-                steps_per_epoch=len(train_dataloader),
-                epochs=hyperparameter.epoch,
-            )
-
-            # Run
-            self.train(
-                epochs=hyperparameter.epoch,
-                model=model,
-                dataloader_train=train_dataloader,
-                dataloader_test=test_dataloader,
-                optimizer=optimizer,
-                scheduler=scheduler,
-                loss_fn=total_loss,
-                preprocess=preprocessor,
-                device=device,
-            )
+            experiment = CardiacExperiment(hyperparameter=hyperparameter, device=device)
         else:
             print(f"Your experiment number ({experiment_num}) not found")
+
+        train_dataloader = experiment["train_dataloader"]
+        test_dataloader = experiment["test_dataloader"]
+        model = experiment["model"]
+        scheduler = experiment["scheduler"]
+        preprocessor = experiment["preprocessor"]
+        optimizer = experiment["optimizer"]
+
+        # Run
+        self.train(
+            epochs=hyperparameter.epoch,
+            model=model,
+            dataloader_train=train_dataloader,
+            dataloader_test=test_dataloader,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            loss_fn=total_loss,
+            preprocess=preprocessor,
+            device=device,
+        )
 
     def train(
         self,
@@ -386,101 +334,6 @@ class Trainer:
                     global_step=iteration,
                 )
                 break
-
-
-random_generator = torch.Generator().manual_seed(1234)
-
-
-def train_collate_fn(data):
-    if torch.rand(1, generator=random_generator)[0] > 0.5:
-        current_size = 512
-    else:
-        current_size = 256
-    images = []
-    labels = []
-
-    # If current_size is the same size as input
-    # skip cropping
-    if data[0][0].size(1) == current_size:
-        for x in data:
-            image, label = x
-            images.append(image)
-            labels.append(label)
-    else:
-        for x in data:
-            image, label = x
-            i, j, h, w = v2.RandomCrop.get_params(image, (current_size, current_size))
-            images.append(crop(image, i, j, h, w))
-            labels.append(crop(label, i, j, h, w))
-    return (torch.stack(images), torch.stack(labels))
-
-
-def test_collate_fn(data):
-    images = []
-    labels = []
-    for x in data:
-        image, label = x
-        image = image
-        label = label
-        images.append(resize(image, [512, 512]))
-        labels.append(resize(label, [512, 512]))
-    return (torch.stack(images), torch.stack(labels))
-
-
-def create_cardiac_dataloader_traintest(
-    path: str,
-    path2: str,
-    batch_size: int,
-    seed: int = 12345678,
-    num_workers: int = 4,
-) -> Tuple[DataLoader, DataLoader]:
-    global_dataset = CardiacDatasetHDF5(data_path=path, data_path2=path2)
-    SPLIT_PERCENTAGE = 0.8
-
-    generator = torch.Generator().manual_seed(seed)
-    train_dataset, test_dataset = random_split(
-        global_dataset,
-        [SPLIT_PERCENTAGE, 1 - SPLIT_PERCENTAGE],
-        generator,
-    )
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        collate_fn=train_collate_fn,
-        num_workers=num_workers,
-    )
-    test_dataloader = DataLoader(
-        test_dataset,
-        batch_size=batch_size,
-        num_workers=num_workers,
-    )
-    return train_dataloader, test_dataloader
-
-
-def create_textocr_dataloader(
-    path: str,
-    batch_size: int,
-) -> Tuple[DataLoader, DataLoader]:
-    train_dataset = TextOCRDataset(path, True)
-    # train_dataset = Subset(train_dataset, [x for x in range(1)])
-
-    train_dataloader = DataLoader(
-        train_dataset,
-        shuffle=True,
-        batch_size=batch_size,
-        num_workers=4,
-        collate_fn=train_collate_fn,
-    )
-    test_dataset = TextOCRDataset(path, False)
-    test_dataloader = DataLoader(
-        test_dataset,
-        shuffle=False,
-        batch_size=batch_size,
-        num_workers=4,
-        collate_fn=test_collate_fn,
-    )
-    return train_dataloader, test_dataloader
 
 
 # train, test = create_cardiac_dataloader_traintest(

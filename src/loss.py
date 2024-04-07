@@ -26,7 +26,6 @@ def dice_index_per_channel(
 
 
 def total_loss(pred: torch.Tensor, target: torch.Tensor):
-    # crossentropy_loss = torch.nn.functional.cross_entropy(pred, target)
     crossentropy_loss = torch.nn.functional.binary_cross_entropy_with_logits(
         pred, target
     )

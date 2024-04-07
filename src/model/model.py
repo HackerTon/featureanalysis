@@ -65,7 +65,7 @@ class UNETNetwork(nn.Module):
 class FPNNetwork(nn.Module):
     def __init__(self, numberClass):
         super().__init__()
-        _resnet34 = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1)
+        _resnet34 = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
         self.backbone = create_feature_extractor(
             _resnet34,
             {

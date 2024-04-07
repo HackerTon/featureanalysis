@@ -41,7 +41,25 @@ class Trainer:
     ):
         if experiment_num == 0:
             experiment = TextocrExperiment(hyperparameter=hyperparameter, device=device)
-        elif experiment_num == 5:
+        elif experiment_num == 1:
+            experiment = CardiacExperiment(
+                hyperparameter=hyperparameter,
+                device=device,
+                model="multinet",
+            )
+        elif experiment_num == 2:
+            experiment = CardiacExperiment(
+                hyperparameter=hyperparameter,
+                device=device,
+                model="unet",
+            )
+        elif experiment_num == 3:
+            experiment = CardiacExperiment(
+                hyperparameter=hyperparameter,
+                device=device,
+                model="fpn",
+            )
+        elif experiment_num == 4:
             experiment = CardiacExperiment(hyperparameter=hyperparameter, device=device)
         else:
             print(f"Your experiment number ({experiment_num}) not found")

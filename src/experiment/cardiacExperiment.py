@@ -9,12 +9,14 @@ from torchvision.transforms.v2.functional import crop, resize
 
 from src.dataloader.dataloader import CardiacDatasetHDF5
 from src.dataloader.transform import ToNormalized
-from src.model.model import BackboneType, MultiNet
+from src.model.model import BackboneType, MultiNet, UNETNetwork, FPNNetwork
 from src.service.hyperparamater import Hyperparameter
 
 
 class CardiacExperiment(ExperimentBase):
-    def __init__(self, hyperparameter: Hyperparameter, device: str) -> None:
+    def __init__(
+        self, hyperparameter: Hyperparameter, device: str, model="multinet"
+    ) -> None:
         super().__init__()
 
         self.train_dataloader, self.test_dataloader = (
@@ -24,7 +26,16 @@ class CardiacExperiment(ExperimentBase):
                 batch_size=hyperparameter.batch_size_train,
             )
         )
-        self.model = MultiNet(numberClass=3, backboneType=BackboneType.RESNET50)
+
+        if model == "unet":
+            self.model = UNETNetwork(numberClass=3)
+        elif model == "multinet":
+            self.model = MultiNet(numberClass=3, backboneType=BackboneType.RESNET50)
+        elif model == "fpn":
+            self.model = FPNNetwork(numberClass=3)
+        else:
+            raise Exception(f"missing model {model}")
+
         self.preprocessor = v2.Compose(
             [
                 ToNormalized(),

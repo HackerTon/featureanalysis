@@ -17,7 +17,6 @@ class UNETNetwork(nn.Module):
         self.backbone = create_feature_extractor(
             _resnet50,
             {
-                "relu": "feat1",
                 "layer1": "feat2",
                 "layer2": "feat3",
                 "layer3": "feat4",
@@ -78,11 +77,10 @@ class UNETNetwork(nn.Module):
 class FPNNetwork(nn.Module):
     def __init__(self, numberClass):
         super().__init__()
-        _resnet34 = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+        _resnet34 = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
         self.backbone = create_feature_extractor(
             _resnet34,
             {
-                # "relu": "feat1",
                 "layer1": "feat2",
                 "layer2": "feat3",
                 "layer3": "feat4",

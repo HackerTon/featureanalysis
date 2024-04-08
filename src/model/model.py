@@ -13,9 +13,9 @@ class BackboneType(Enum):
 class UNETNetwork(nn.Module):
     def __init__(self, numberClass):
         super().__init__()
-        _resnet50 = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
         self.backbone = create_feature_extractor(
-            _resnet50,
+            backbone,
             {
                 "layer1": "feat2",
                 "layer2": "feat3",
@@ -77,9 +77,9 @@ class UNETNetwork(nn.Module):
 class FPNNetwork(nn.Module):
     def __init__(self, numberClass):
         super().__init__()
-        _resnet34 = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
         self.backbone = create_feature_extractor(
-            _resnet34,
+            backbone,
             {
                 "layer1": "feat2",
                 "layer2": "feat3",
@@ -236,7 +236,6 @@ class MultiNet(nn.Module):
             self.backbone = create_feature_extractor(
                 backbone,
                 {
-                    # "relu": "feat1",
                     "layer1": "feat2",
                     "layer2": "feat3",
                     "layer3": "feat4",
@@ -244,11 +243,10 @@ class MultiNet(nn.Module):
                 },
             )
         elif backboneType == BackboneType.RESNET50:
-            backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
+            backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
             self.backbone = create_feature_extractor(
                 backbone,
                 {
-                    # "relu": "feat1",
                     "layer1": "feat2",
                     "layer2": "feat3",
                     "layer3": "feat4",

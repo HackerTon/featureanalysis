@@ -231,6 +231,7 @@ class FPNNetwork(nn.Module):
 
         concatenated_prediction = self.final_conv_1(combined_prediction).relu()
         concatenated_prediction = self.final_conv_2(combined_prediction).relu()
+        return self.upsampling_4x_bilinear(concatenated_prediction)
 
 
 class MultiNet(nn.Module):

@@ -29,22 +29,35 @@ class UNETNetwork(nn.Module):
         for param in self.backbone.parameters():
             param.requires_grad = False
 
-        # self.upsampling_2x = nn.UpsamplingNearest2d(scale_factor=2)
         self.upsampling_2x_bilinear = nn.UpsamplingBilinear2d(scale_factor=2)
         self.conv5 = nn.Conv2d(
-            in_channels=2048, out_channels=1024, kernel_size=3, padding=1
+            in_channels=2048,
+            out_channels=1024,
+            kernel_size=3,
+            padding=1,
         )
         self.conv6 = nn.Conv2d(
-            in_channels=1024, out_channels=512, kernel_size=3, padding=1
+            in_channels=1024,
+            out_channels=512,
+            kernel_size=3,
+            padding=1,
         )
         self.conv7 = nn.Conv2d(
-            in_channels=512, out_channels=256, kernel_size=3, padding=1
+            in_channels=512,
+            out_channels=256,
+            kernel_size=3,
+            padding=1,
         )
         self.conv8 = nn.Conv2d(
-            in_channels=256, out_channels=128, kernel_size=3, padding=1
+            in_channels=256,
+            out_channels=128,
+            kernel_size=3,
+            padding=1,
         )
         self.convfinal = nn.Conv2d(
-            in_channels=128, out_channels=numberClass, kernel_size=1
+            in_channels=128,
+            out_channels=numberClass,
+            kernel_size=1,
         )
 
     def forward(self, x):
@@ -260,11 +273,11 @@ class MultiNet(nn.Module):
         self.upsampling_8x_bilinear = nn.UpsamplingBilinear2d(scale_factor=8)
         self.conv5_1x1 = nn.Conv2d(
             in_channels=backbone_dimensions[-1],
-            out_channels=256,
+            out_channels=backbone_dimensions[-1] // 4,
             kernel_size=1,
         )
         self.conv5_3x3_1 = nn.Conv2d(
-            in_channels=256,
+            in_channels=backbone_dimensions[-1] // 4,
             out_channels=128,
             kernel_size=3,
             padding=1,
@@ -277,11 +290,11 @@ class MultiNet(nn.Module):
         )
         self.conv4_1x1 = nn.Conv2d(
             in_channels=backbone_dimensions[-2],
-            out_channels=256,
+            out_channels=backbone_dimensions[-1] // 4,
             kernel_size=1,
         )
         self.conv4_3x3_1 = nn.Conv2d(
-            in_channels=256,
+            in_channels=backbone_dimensions[-1] // 4,
             out_channels=128,
             kernel_size=3,
             padding=1,
@@ -294,11 +307,11 @@ class MultiNet(nn.Module):
         )
         self.conv3_1x1 = nn.Conv2d(
             in_channels=backbone_dimensions[-3],
-            out_channels=256,
+            out_channels=backbone_dimensions[-1] // 4,
             kernel_size=1,
         )
         self.conv3_3x3_1 = nn.Conv2d(
-            in_channels=256,
+            in_channels=backbone_dimensions[-1] // 4,
             out_channels=128,
             kernel_size=3,
             padding=1,
@@ -311,11 +324,11 @@ class MultiNet(nn.Module):
         )
         self.conv2_1x1 = nn.Conv2d(
             in_channels=backbone_dimensions[-4],
-            out_channels=256,
+            out_channels=backbone_dimensions[-1] // 4,
             kernel_size=1,
         )
         self.conv2_3x3_1 = nn.Conv2d(
-            in_channels=256,
+            in_channels=backbone_dimensions[-1] // 4,
             out_channels=128,
             kernel_size=3,
             padding=1,

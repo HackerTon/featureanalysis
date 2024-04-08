@@ -168,9 +168,9 @@ class FPNNetwork(nn.Module):
             padding=1,
         )
         self.final_conv_1 = nn.Conv2d(
-            in_channels=512,
+            in_channels=128,
             kernel_size=3,
-            out_channels=512,
+            out_channels=128,
             padding=1,
         )
         self.final_conv_2 = nn.Conv2d(

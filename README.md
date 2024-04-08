@@ -1,4 +1,8 @@
-# Sementatic segmentation trainer
+# Semantatic segmentation trainer
+![screenshot](src/notebook/test.png)
+
+Heart and lung segmentation with bounding box visualisation
+
 
 ## How to train
 Run `python main -p {dataset} -b {batch size} -x {experiment number} -m {compute mode} -l {learning rate}`

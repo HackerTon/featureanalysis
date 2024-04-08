@@ -212,19 +212,25 @@ class FPNNetwork(nn.Module):
         final_prediction_3 = self.upsampling_2x_bilinear(conv3_prediction)
         final_prediction_2 = conv2_prediction
 
-        concatenated_prediction = torch.concatenate(
-            [
-                final_prediction_5,
-                final_prediction_4,
-                final_prediction_3,
-                final_prediction_2,
-            ],
-            dim=1,
+        # concatenated_prediction = torch.concatenate(
+        #     [
+        #         final_prediction_5,
+        #         final_prediction_4,
+        #         final_prediction_3,
+        #         final_prediction_2,
+        #     ],
+        #     dim=1,
+        # )
+
+        combined_prediction = (
+            final_prediction_5
+            + final_prediction_4
+            + final_prediction_3
+            + final_prediction_2
         )
 
-        concatenated_prediction = self.final_conv_1(concatenated_prediction).relu()
-        concatenated_prediction = self.final_conv_2(concatenated_prediction).relu()
-        return self.upsampling_4x_bilinear(concatenated_prediction)
+        concatenated_prediction = self.final_conv_1(combined_prediction).relu()
+        concatenated_prediction = self.final_conv_2(combined_prediction).relu()
 
 
 class MultiNet(nn.Module):

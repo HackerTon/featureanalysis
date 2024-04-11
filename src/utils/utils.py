@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from dataloader.dataloader import UAVIDDataset
+from torchvision.utils import draw_keypoints, draw_segmentation_masks
+import cv2
 
 
 def combine_channels(image: torch.Tensor, colors: torch.Tensor, is_predict: bool):
@@ -59,3 +61,61 @@ def visualize(
     axes[0].imshow(input_image)
     axes[1].imshow(grouth_truth_image)
     axes[2].imshow(predicted_image)
+
+
+def generate_visualization(
+    original_image,
+    prediction,
+    target,
+):
+    # Generate contours
+    # and visualize as keypoints
+    heart_mask = target[0].sigmoid()[2] > 0.5
+    lung_mask = target[0].sigmoid()[1] > 0.5
+
+    heart_mask = heart_mask.numpy().astype(np.uint8)
+    lung_mask = lung_mask.numpy().astype(np.uint8)
+    heart_contour, _ = cv2.findContours(
+        heart_mask,
+        cv2.RETR_LIST,
+        cv2.CHAIN_APPROX_NONE,
+    )
+    lung_contour, _ = cv2.findContours(
+        lung_mask,
+        cv2.RETR_LIST,
+        cv2.CHAIN_APPROX_NONE,
+    )
+    keypoints = torch.tensor(heart_contour)[..., 0, :]
+    visualization_image = draw_keypoints(
+        (original_image[0] * 255).to(torch.uint8),
+        keypoints,
+        radius=1,
+        colors=(255, 0, 0),
+    )
+    for i in range(len(lung_contour)):
+        keypoints = torch.tensor(lung_contour[i]).unsqueeze(0)[0, :]
+        visualization_image = draw_keypoints(
+            visualization_image,
+            keypoints,
+            radius=1,
+            colors=(0, 255, 0),
+        )
+
+    # Visualize segmentation as mask
+    output_heart_mask = prediction[0].sigmoid()[2] > 0.5
+    output_lung_mask = prediction[0].sigmoid()[1] > 0.5
+
+    visualization_image = draw_segmentation_masks(
+        visualization_image,
+        output_heart_mask,
+        alpha=0.5,
+        colors=(0, 0, 128),
+    )
+    visualization_image = draw_segmentation_masks(
+        visualization_image,
+        output_lung_mask,
+        alpha=0.5,
+        colors=(128, 64, 128),
+    )
+
+    return visualization_image

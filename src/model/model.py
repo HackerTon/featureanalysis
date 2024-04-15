@@ -168,13 +168,13 @@ class FPNNetwork(nn.Module):
             padding=1,
         )
         self.final_conv_1 = nn.Conv2d(
-            in_channels=128,
+            in_channels=512,
             kernel_size=3,
-            out_channels=128,
+            out_channels=256,
             padding=1,
         )
         self.final_conv_2 = nn.Conv2d(
-            in_channels=128,
+            in_channels=256,
             out_channels=numberClass,
             kernel_size=1,
         )
@@ -212,25 +212,18 @@ class FPNNetwork(nn.Module):
         final_prediction_3 = self.upsampling_2x_bilinear(conv3_prediction)
         final_prediction_2 = conv2_prediction
 
-        # concatenated_prediction = torch.concatenate(
-        #     [
-        #         final_prediction_5,
-        #         final_prediction_4,
-        #         final_prediction_3,
-        #         final_prediction_2,
-        #     ],
-        #     dim=1,
-        # )
-
-        combined_prediction = (
-            final_prediction_5
-            + final_prediction_4
-            + final_prediction_3
-            + final_prediction_2
+        concatenated_prediction = torch.concatenate(
+            [
+                final_prediction_5,
+                final_prediction_4,
+                final_prediction_3,
+                final_prediction_2,
+            ],
+            dim=1,
         )
 
-        concatenated_prediction = self.final_conv_1(combined_prediction).relu()
-        concatenated_prediction = self.final_conv_2(combined_prediction).relu()
+        concatenated_prediction = self.final_conv_1(concatenated_prediction).relu()
+        concatenated_prediction = self.final_conv_2(concatenated_prediction).relu()
         return self.upsampling_4x_bilinear(concatenated_prediction)
 
 
@@ -276,11 +269,11 @@ class MultiNet(nn.Module):
         self.upsampling_8x_bilinear = nn.UpsamplingBilinear2d(scale_factor=8)
         self.conv5_1x1 = nn.Conv2d(
             in_channels=backbone_dimensions[-1],
-            out_channels=256,
+            out_channels=512,
             kernel_size=1,
         )
         self.conv5_3x3_1 = nn.Conv2d(
-            in_channels=256,
+            in_channels=512,
             out_channels=128,
             kernel_size=3,
             padding=1,
@@ -293,11 +286,11 @@ class MultiNet(nn.Module):
         )
         self.conv4_1x1 = nn.Conv2d(
             in_channels=backbone_dimensions[-2],
-            out_channels=256,
+            out_channels=512,
             kernel_size=1,
         )
         self.conv4_3x3_1 = nn.Conv2d(
-            in_channels=256,
+            in_channels=512,
             out_channels=128,
             kernel_size=3,
             padding=1,
@@ -310,11 +303,11 @@ class MultiNet(nn.Module):
         )
         self.conv3_1x1 = nn.Conv2d(
             in_channels=backbone_dimensions[-3],
-            out_channels=256,
+            out_channels=512,
             kernel_size=1,
         )
         self.conv3_3x3_1 = nn.Conv2d(
-            in_channels=256,
+            in_channels=512,
             out_channels=128,
             kernel_size=3,
             padding=1,
@@ -327,11 +320,11 @@ class MultiNet(nn.Module):
         )
         self.conv2_1x1 = nn.Conv2d(
             in_channels=backbone_dimensions[-4],
-            out_channels=256,
+            out_channels=512,
             kernel_size=1,
         )
         self.conv2_3x3_1 = nn.Conv2d(
-            in_channels=256,
+            in_channels=512,
             out_channels=128,
             kernel_size=3,
             padding=1,

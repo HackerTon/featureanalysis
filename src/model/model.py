@@ -377,8 +377,128 @@ class MultiNet(nn.Module):
         )
 
 
+class MultiNetV2(nn.Module):
+    def __init__(self, numberClass, backboneType: BackboneType):
+        super().__init__()
+        if backboneType == BackboneType.RESNET34:
+            backbone = resnet34(weights=ResNet34_Weights.IMAGENET1K_V1)
+            self.backbone = create_feature_extractor(
+                backbone,
+                {
+                    "layer1": "feat2",
+                    "layer2": "feat3",
+                    "layer3": "feat4",
+                    "layer4": "feat5",
+                },
+            )
+        elif backboneType == BackboneType.RESNET50:
+            backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+            self.backbone = create_feature_extractor(
+                backbone,
+                {
+                    "layer1": "feat2",
+                    "layer2": "feat3",
+                    "layer3": "feat4",
+                    "layer4": "feat5",
+                },
+            )
+        else:
+            raise Exception(f"No {backboneType}")
+
+        # Freeze backbone
+        for param in self.backbone.parameters():
+            param.requires_grad = False
+
+        self.upsampling_2x_bilinear = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.upsampling_4x_bilinear = nn.UpsamplingBilinear2d(scale_factor=4)
+        self.upsampling_8x_bilinear = nn.UpsamplingBilinear2d(scale_factor=8)
+        self.conv5 = nn.Conv2d(
+            in_channels=2048,
+            out_channels=1024,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv5_m = nn.Conv2d(
+            in_channels=1024,
+            out_channels=numberClass,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv6 = nn.Conv2d(
+            in_channels=1024,
+            out_channels=512,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv6_m = nn.Conv2d(
+            in_channels=512,
+            out_channels=numberClass,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv7 = nn.Conv2d(
+            in_channels=512,
+            out_channels=256,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv7_m = nn.Conv2d(
+            in_channels=256,
+            out_channels=numberClass,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv8 = nn.Conv2d(
+            in_channels=256,
+            out_channels=128,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv8_m = nn.Conv2d(
+            in_channels=128,
+            out_channels=numberClass,
+            kernel_size=3,
+            padding=1,
+        )
+        self.convfinal = nn.Conv2d(
+            in_channels=128,
+            out_channels=numberClass,
+            kernel_size=1,
+        )
+
+    def forward(self, x):
+        backbone_output = self.backbone(x)
+        feat2, feat3, feat4, feat5 = (
+            backbone_output["feat2"],
+            backbone_output["feat3"],
+            backbone_output["feat4"],
+            backbone_output["feat5"],
+        )
+
+        featoutput1 = self.upsampling_2x_bilinear(self.conv5(feat5).relu())
+        featoutput2 = self.upsampling_2x_bilinear(
+            self.conv6(feat4 + featoutput1).relu()
+        )
+        featoutput3 = self.upsampling_2x_bilinear(
+            self.conv7(feat3 + featoutput2).relu()
+        )
+        featoutput4 = self.upsampling_2x_bilinear(
+            self.conv8(feat2 + featoutput3).relu()
+        )
+
+        featoutput1 = self.upsampling_8x_bilinear(self.conv5_m(featoutput1))
+        featoutput2 = self.upsampling_4x_bilinear(self.conv6_m(featoutput2))
+        featoutput3 = self.upsampling_2x_bilinear(self.conv7_m(featoutput3))
+        featoutput4 = self.conv8_m(featoutput4)
+
+        sum_output = featoutput1 + featoutput2 + featoutput3 + featoutput4
+        return self.upsampling_2x_bilinear(sum_output)
+
+
+# Modify UNET to follow FPN style
+
 if __name__ == "__main__":
-    model = MultiNet(3, BackboneType.RESNET50)
+    model = MultiNetV2(3, BackboneType.RESNET50)
 
     with torch.no_grad():
         output = model(torch.rand([1, 3, 256, 256]))

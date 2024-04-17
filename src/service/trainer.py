@@ -60,7 +60,11 @@ class Trainer:
                 model="fpn",
             )
         elif experiment_num == 4:
-            experiment = CardiacExperiment(hyperparameter=hyperparameter, device=device)
+            experiment = CardiacExperiment(
+                hyperparameter=hyperparameter,
+                device=device,
+                model="multinetv2",
+            )
         else:
             print(f"Your experiment number ({experiment_num}) not found")
 

@@ -9,7 +9,7 @@ from torchvision.transforms.v2.functional import crop, resize
 
 from src.dataloader.dataloader import CardiacDatasetHDF5
 from src.dataloader.transform import ToNormalized
-from src.model.model import BackboneType, MultiNet, UNETNetwork, FPNNetwork
+from src.model.model import BackboneType, MultiNet, MultiNetV2, UNETNetwork, FPNNetwork
 from src.service.hyperparamater import Hyperparameter
 
 
@@ -33,6 +33,8 @@ class CardiacExperiment(ExperimentBase):
             self.model = MultiNet(numberClass=3, backboneType=BackboneType.RESNET50)
         elif model == "fpn":
             self.model = FPNNetwork(numberClass=3)
+        elif model == "multinetv2":
+            self.model = MultiNetV2(numberClass=3, backboneType=BackboneType.RESNET50)
         else:
             raise Exception(f"missing model {model}")
 

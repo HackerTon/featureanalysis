@@ -17,6 +17,9 @@ Example command
 ## How to monitor training progress
 Run `tensorboard --logdir data/log`
 
+## How to run benchmark
+Run `python -m src.benchmark`
+
 ## What have I did
 ### Multinet
 1. Increase lateral channel size to half of final backbone channel output **(2048 / 4 = 512)**

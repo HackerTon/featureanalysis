@@ -42,7 +42,7 @@ class DatasetProcessor:
             self.output_directory.mkdir()
 
         self.csv = pd.read_csv(
-            str(directory.joinpath("chestxray.csv")),
+            str(directory.joinpath("ChestX-Ray8.csv")),
             engine="pyarrow",
             index_col=0,
         )

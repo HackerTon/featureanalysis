@@ -266,11 +266,8 @@ class DatasetProcessor:
 
 def process_images(path, output_path):
     train_images_processor = DatasetProcessor(path=path, is_train=True)
-    # test_images_processor = DatasetProcessor(path=path, is_train=False)
-    # train_images_processor.process()
-    # train_images_processor.process_hdf5_image(output_directory=output_path)
+    train_images_processor.process_hdf5_image(output_directory=output_path)
     train_images_processor.process_hdf5_label(output_directory=output_path)
-    # test_images_processor.process()
 
 
 if __name__ == "__main__":

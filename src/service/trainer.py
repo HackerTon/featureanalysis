@@ -65,6 +65,12 @@ class Trainer:
                 device=device,
                 model="multinetv2",
             )
+        elif experiment_num == 5:
+            experiment = CardiacExperiment(
+                hyperparameter=hyperparameter,
+                device=device,
+                model="multinetwithattention",
+            )
         else:
             print(f"Your experiment number ({experiment_num}) not found")
 

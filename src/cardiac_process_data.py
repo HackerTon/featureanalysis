@@ -46,7 +46,7 @@ class DatasetProcessor:
             engine="pyarrow",
             index_col=0,
         )
-        self.images = directory.glob("chestxray/images_*/**/*.png")
+        self.images = [x for x in directory.glob("chestxray/images_*/**/*.png")]
 
     @staticmethod
     def resize_image(image):
@@ -199,8 +199,6 @@ class DatasetProcessor:
         if not output_image_path.exists():
             output_image_path.mkdir()
 
-        images = [x for x in self.images]
-
         print("Start Generating")
         hdf5_file = h5py.File(
             str(output_image_path.joinpath("train_image.hdf5")),
@@ -208,10 +206,10 @@ class DatasetProcessor:
         )
         dataset_images = hdf5_file.create_dataset(
             "image",
-            shape=(len(images), 3, 512, 512),
+            shape=(len(self.images), 3, 512, 512),
             dtype=np.uint8,
         )
-        for idx, image_path in enumerate(tqdm(images, total=len(images))):
+        for idx, image_path in enumerate(tqdm(self.images, total=len(self.images))):
             image_name = image_path.name
             selected_row = self.csv.loc[image_name]
             # left_lung_rle = selected_row["Left Lung"]
@@ -230,8 +228,6 @@ class DatasetProcessor:
         if not output_image_path.exists():
             output_image_path.mkdir(parents=True)
 
-        images = [x for x in self.images]
-
         print("Start Generating")
         hdf5_file = h5py.File(
             str(output_image_path.joinpath("train_label.hdf5")),
@@ -239,11 +235,11 @@ class DatasetProcessor:
         )
         dataset_labels = hdf5_file.create_dataset(
             "label",
-            shape=(len(images), 3, 512, 512),
+            shape=(len(self.images), 3, 512, 512),
             dtype=np.uint8,
         )
 
-        for idx, image_path in enumerate(tqdm(images, total=len(images))):
+        for idx, image_path in enumerate(tqdm(self.images, total=len(self.images))):
             image_name = image_path.name
             selected_row = self.csv.loc[image_name]
             left_lung_rle = selected_row["Left Lung"]

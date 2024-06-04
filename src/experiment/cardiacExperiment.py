@@ -9,7 +9,14 @@ from torchvision.transforms.v2.functional import crop, resize
 
 from src.dataloader.dataloader import CardiacDatasetHDF5
 from src.dataloader.transform import ToNormalized
-from src.model.model import BackboneType, MultiNet, MultiNetV2, UNETNetwork, FPNNetwork, MultiNetWithAttention
+from src.model.model import (
+    BackboneType,
+    MultiNet,
+    MultiNetV2,
+    UNETNetwork,
+    FPNNetwork,
+    MultiNetWithAttention,
+)
 from src.service.hyperparamater import Hyperparameter
 
 
@@ -36,7 +43,9 @@ class CardiacExperiment(ExperimentBase):
         elif model == "multinetv2":
             self.model = MultiNetV2(numberClass=3, backboneType=BackboneType.RESNET50)
         elif model == "multinetwithattention":
-            self.model = MultiNetWithAttention(numberClass=3, backboneType=BackboneType.RESNET50)
+            self.model = MultiNetWithAttention(
+                numberClass=3, backboneType=BackboneType.RESNET50
+            )
         else:
             raise Exception(f"missing model {model}")
 
@@ -90,6 +99,27 @@ def train_collate_fn(data):
     return (torch.stack(images), torch.stack(labels))
 
 
+def train_collate_fn_attention(data):
+    current_size = 512
+    images = []
+    labels = []
+
+    # If current_size is the same size as input
+    # skip cropping
+    if data[0][0].size(1) == current_size:
+        for x in data:
+            image, label = x
+            images.append(image)
+            labels.append(label)
+    else:
+        for x in data:
+            image, label = x
+            i, j, h, w = v2.RandomCrop.get_params(image, (current_size, current_size))
+            images.append(crop(image, i, j, h, w))
+            labels.append(crop(label, i, j, h, w))
+    return (torch.stack(images), torch.stack(labels))
+
+
 def test_collate_fn(data):
     images = []
     labels = []
@@ -123,6 +153,37 @@ def create_cardiac_dataloader_traintest(
         batch_size=batch_size,
         shuffle=True,
         collate_fn=train_collate_fn,
+        num_workers=num_workers,
+    )
+    test_dataloader = DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        num_workers=num_workers,
+    )
+    return train_dataloader, test_dataloader
+
+
+def create_cardiac_dataloader_traintest_attention(
+    path: str,
+    path2: str,
+    batch_size: int,
+    seed: int = 12345678,
+    num_workers: int = 4,
+) -> Tuple[DataLoader, DataLoader]:
+    global_dataset = CardiacDatasetHDF5(data_path=path, data_path2=path2)
+    SPLIT_PERCENTAGE = 0.8
+
+    generator = torch.Generator().manual_seed(seed)
+    train_dataset, test_dataset = random_split(
+        global_dataset,
+        [SPLIT_PERCENTAGE, 1 - SPLIT_PERCENTAGE],
+        generator,
+    )
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=True,
+        collate_fn=train_collate_fn_attention,
         num_workers=num_workers,
     )
     test_dataloader = DataLoader(

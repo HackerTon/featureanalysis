@@ -593,7 +593,7 @@ class MultiNetWithAttention(nn.Module):
             out_channels=512,
             kernel_size=1,
         )
-        self.attention_conv5 = SelfAttentionBlock(8 * 8, 512)
+        self.attention_conv5 = SelfAttentionBlock(16 * 16, 512)
         self.conv5_3x3_1 = nn.Conv2d(
             in_channels=512,
             out_channels=128,
@@ -611,7 +611,7 @@ class MultiNetWithAttention(nn.Module):
             out_channels=512,
             kernel_size=1,
         )
-        self.attention_conv4 = SelfAttentionBlock(16 * 16, 512)
+        self.attention_conv4 = SelfAttentionBlock(32 * 32, 512)
         self.conv4_3x3_1 = nn.Conv2d(
             in_channels=512,
             out_channels=128,
@@ -704,8 +704,8 @@ class MultiNetWithAttention(nn.Module):
 # Modify UNET to follow FPN style
 
 if __name__ == "__main__":
-    model = MultiNetV2(3, BackboneType.RESNET50)
+    model = MultiNetWithAttention(3, BackboneType.RESNET50)
 
     with torch.no_grad():
-        output = model(torch.rand([1, 3, 256, 256]))
+        output = model(torch.rand([1, 3, 512, 512]))
         print(output.shape)

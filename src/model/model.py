@@ -544,7 +544,7 @@ class SelfAttentionBlock(nn.Module):
             weighted_Q, weighted_K, weighted_V, need_weights=True
         )
         return attended_matrix.permute([1, 2, 0]).reshape(
-            [batch_size, height, width, channel]
+            [batch_size, channel, height, width]
         )
 
 
@@ -629,6 +629,7 @@ class MultiNetWithAttention(nn.Module):
             out_channels=512,
             kernel_size=1,
         )
+        self.attention_conv3 = SelfAttentionBlock(64 * 64, 512)
         self.conv3_3x3_1 = nn.Conv2d(
             in_channels=512,
             out_channels=128,
@@ -646,6 +647,7 @@ class MultiNetWithAttention(nn.Module):
             out_channels=512,
             kernel_size=1,
         )
+        self.attention_conv2 = SelfAttentionBlock(128 * 128, 512)
         self.conv2_3x3_1 = nn.Conv2d(
             in_channels=512,
             out_channels=128,
@@ -669,21 +671,24 @@ class MultiNetWithAttention(nn.Module):
         )
 
         conv5_mid = self.conv5_1x1(feat5).relu()
-        conv5_prediction = self.attention_conv5(conv5_mid)
+        conv5_mid = self.attention_conv5(conv5_mid)
         conv5_prediction = self.conv5_3x3_1(conv5_mid).relu()
         conv5_prediction = self.conv5_3x3_2(conv5_prediction)
 
         conv4_lateral = self.conv4_1x1(feat4).relu()
+        conv4_lateral = self.attention_conv4(conv4_lateral)
         conv4_mid = conv4_lateral + self.upsampling_2x_bilinear(conv5_mid)
         conv4_prediction = self.conv4_3x3_1(conv4_mid).relu()
         conv4_prediction = self.conv4_3x3_2(conv4_prediction)
 
         conv3_lateral = self.conv3_1x1(feat3).relu()
+        conv3_lateral = self.attention_conv3(conv3_lateral)
         conv3_mid = conv3_lateral + self.upsampling_2x_bilinear(conv4_mid)
         conv3_prediction = self.conv3_3x3_1(conv3_mid).relu()
         conv3_prediction = self.conv3_3x3_2(conv3_prediction)
 
         conv2_lateral = self.conv2_1x1(feat2).relu()
+        conv2_lateral = self.attention_conv2(conv2_lateral)
         conv2_mid = conv2_lateral + self.upsampling_2x_bilinear(conv3_mid)
         conv2_prediction = self.conv2_3x3_1(conv2_mid).relu()
         conv2_prediction = self.conv2_3x3_2(conv2_prediction)
@@ -702,10 +707,8 @@ class MultiNetWithAttention(nn.Module):
 
 
 # Modify UNET to follow FPN style
-
-if __name__ == "__main__":
-    model = MultiNetWithAttention(3, BackboneType.RESNET50)
-
-    with torch.no_grad():
-        output = model(torch.rand([1, 3, 512, 512]))
-        print(output.shape)
+# if __name__ == "__main__":
+#     model = MultiNetWithAttention(3, BackboneType.RESNET50)
+#     with torch.no_grad():
+#         output = model(torch.rand([1, 3, 512, 512]))
+#         print(output.shape)

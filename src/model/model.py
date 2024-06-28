@@ -629,7 +629,7 @@ class MultiNetWithAttention(nn.Module):
             out_channels=512,
             kernel_size=1,
         )
-        self.attention_conv3 = SelfAttentionBlock(64 * 64, 512)
+        # self.attention_conv3 = SelfAttentionBlock(64 * 64, 512)
         self.conv3_3x3_1 = nn.Conv2d(
             in_channels=512,
             out_channels=128,
@@ -647,7 +647,7 @@ class MultiNetWithAttention(nn.Module):
             out_channels=512,
             kernel_size=1,
         )
-        self.attention_conv2 = SelfAttentionBlock(128 * 128, 512)
+        # self.attention_conv2 = SelfAttentionBlock(128 * 128, 512)
         self.conv2_3x3_1 = nn.Conv2d(
             in_channels=512,
             out_channels=128,
@@ -682,13 +682,13 @@ class MultiNetWithAttention(nn.Module):
         conv4_prediction = self.conv4_3x3_2(conv4_prediction)
 
         conv3_lateral = self.conv3_1x1(feat3).relu()
-        conv3_lateral = self.attention_conv3(conv3_lateral)
+        # conv3_lateral = self.attention_conv3(conv3_lateral)
         conv3_mid = conv3_lateral + self.upsampling_2x_bilinear(conv4_mid)
         conv3_prediction = self.conv3_3x3_1(conv3_mid).relu()
         conv3_prediction = self.conv3_3x3_2(conv3_prediction)
 
         conv2_lateral = self.conv2_1x1(feat2).relu()
-        conv2_lateral = self.attention_conv2(conv2_lateral)
+        # conv2_lateral = self.attention_conv2(conv2_lateral)
         conv2_mid = conv2_lateral + self.upsampling_2x_bilinear(conv3_mid)
         conv2_prediction = self.conv2_3x3_1(conv2_mid).relu()
         conv2_prediction = self.conv2_3x3_2(conv2_prediction)

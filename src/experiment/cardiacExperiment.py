@@ -27,7 +27,7 @@ class CardiacExperiment(ExperimentBase):
         super().__init__()
 
         self.train_dataloader, self.test_dataloader = (
-            create_cardiac_dataloader_traintest(
+            create_cardiac_dataloader_traintest_attention(
                 path=hyperparameter.data_path,
                 path2=hyperparameter.data_path2,
                 batch_size=hyperparameter.batch_size_train,

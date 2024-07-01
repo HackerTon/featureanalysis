@@ -42,15 +42,11 @@ def main():
         output_tensor = model(image)
         visualization_tensor = generate_visualization(output_tensor)
 
-        
-
-
         write_png(visualization_tensor, "visualization.png")
+
 
 def generate_ctr(output_tensor: torch.Tensor):
     output_tensor = torch.clone(output_tensor).cpu()
-
-
 
 
 def generate_visualization(outputs: torch.Tensor):

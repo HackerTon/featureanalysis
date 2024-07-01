@@ -256,48 +256,6 @@ class LungDataset(Dataset):
         return read_image(image_path, ImageReadMode.RGB)
 
 
-class CardiacDataset(Dataset):
-    dataset_labels = [
-        "background",
-        "lung",
-        "heart",
-    ]
-
-    def __init__(self, directory_path: str):
-        directory = Path(directory_path)
-        self.images = [str(x.absolute()) for x in directory.glob("train/image/*.png")]
-        self.labels = [str(x.absolute()) for x in directory.glob("train/label/*.png")]
-        if len(self.images) != len(self.labels):
-            raise Exception("Number of images & label are not the same.")
-
-    def __len__(self):
-        return len(self.images)
-
-    @staticmethod
-    def label_0and1(label):
-        return label.float()
-
-    @staticmethod
-    def image_0and1(image):
-        return (image / 255).float()
-
-    @staticmethod
-    def mask_label(label):
-        labels = []
-        labels.append((label[0] == 0) & (label[1] == 0) & (label[2] == 0))
-        labels.append((label[0] == 128) & (label[1] == 0) & (label[2] == 0))
-        labels.append((label[0] == 128) & (label[1] == 64) & (label[2] == 128))
-        return torch.stack(labels)
-
-    def __getitem__(self, index):
-        image = read_image(self.images[index], ImageReadMode.RGB)
-        image = self.image_0and1(image)
-        label = read_image(self.labels[index], ImageReadMode.RGB)
-        label = self.mask_label(label)
-        label = self.label_0and1(label)
-        return image, label
-
-
 class CardiacDatasetHDF5(Dataset):
     dataset_labels = [
         "background",

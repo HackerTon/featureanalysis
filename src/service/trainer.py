@@ -2,22 +2,19 @@ import math
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 import torch
-from torch.utils.data import random_split
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import v2
-from torchvision.transforms.v2.functional import crop, resize
-from torchvision.utils import draw_segmentation_masks
 
-from src.dataloader.dataloader import CardiacDatasetHDF5, TextOCRDataset
 from src.experiment.cardiacExperiment import CardiacExperiment
 from src.experiment.textocrExperiment import TextocrExperiment
 from src.loss import dice_index, total_loss
 from src.service.hyperparamater import Hyperparameter
 from src.service.model_saver_service import ModelSaverService
+from ..utils.utils import generate_visualization
 
 
 class Trainer:
@@ -120,31 +117,31 @@ class Trainer:
                     parameter.requires_grad = True
 
             initial_time = time.time()
-            self._train_one_epoch(
-                epoch=epoch,
-                model=model,
-                dataloader=dataloader_train,
-                optimizer=optimizer,
-                loss_fn=loss_fn,
-                preprocess=preprocess,
-                device=device,
-                dtype=dtype,
-                scheduler=scheduler,
-            )
+            # self._train_one_epoch(
+            #     epoch=epoch,
+            #     model=model,
+            #     dataloader=dataloader_train,
+            #     optimizer=optimizer,
+            #     loss_fn=loss_fn,
+            #     preprocess=preprocess,
+            #     device=device,
+            #     dtype=dtype,
+            #     scheduler=scheduler,
+            # )
             time_taken = time.time() - initial_time
             print(f"time_taken: {time_taken}s")
 
             if dataloader_test is not None:
-                self._eval_one_epoch(
-                    epoch=epoch,
-                    model=model,
-                    dataloader=dataloader_test,
-                    loss_fn=loss_fn,
-                    preprocess=preprocess,
-                    device=device,
-                    train_dataset_length=len(dataloader_train),
-                    dtype=dtype,
-                )
+                # self._eval_one_epoch(
+                #     epoch=epoch,
+                #     model=model,
+                #     dataloader=dataloader_test,
+                #     loss_fn=loss_fn,
+                #     preprocess=preprocess,
+                #     device=device,
+                #     train_dataset_length=len(dataloader_train),
+                #     dtype=dtype,
+                # )
                 self._visualize_one_epoch(
                     epoch=epoch,
                     model=model,
@@ -328,32 +325,38 @@ class Trainer:
                 inputs, labels = preprocess(inputs, labels)
 
                 outputs = model(inputs)
-                colors = [
-                    (0, 0, 128),
-                    (128, 64, 128),
-                    (0, 128, 0),
-                    (0, 128, 128),
-                    (128, 0, 64),
-                    (192, 0, 192),
-                    (128, 0, 0),
-                ]
+                # colors = [
+                #     (0, 0, 128),
+                #     (128, 64, 128),
+                #     (0, 128, 0),
+                #     (0, 128, 128),
+                #     (128, 0, 64),
+                #     (192, 0, 192),
+                #     (128, 0, 0),
+                # ]
 
-                visualization_image = original_image[0]
-                for i in range(outputs.size(1) - 1):
-                    # Visualization for label
-                    visualization_image = draw_segmentation_masks(
-                        visualization_image,
-                        labels[0, i + 1] > 0.5,
-                        colors=colors[i],
-                        alpha=0.6,
-                    )
-                    # Visualization for prediction
-                    visualization_image = draw_segmentation_masks(
-                        visualization_image,
-                        outputs[0, i + 1].sigmoid() > 0.5,
-                        colors=colors[i],
-                        alpha=0.3,
-                    )
+                visualization_image = generate_visualization(
+                    original_image=original_image,
+                    prediction=outputs,
+                    target=labels,
+                )
+
+                # visualization_image = original_image[0]
+                # for i in range(outputs.size(1) - 1):
+                #     # Visualization for label
+                #     visualization_image = draw_segmentation_masks(
+                #         visualization_image,
+                #         labels[0, i + 1] > 0.5,
+                #         colors=colors[i],
+                #         alpha=0.6,
+                #     )
+                #     # Visualization for prediction
+                #     visualization_image = draw_segmentation_masks(
+                #         visualization_image,
+                #         outputs[0, i + 1].sigmoid() > 0.5,
+                #         colors=colors[i],
+                #         alpha=0.3,
+                #     )
 
                 iteration = (epoch + 1) * train_dataset_length
                 self.writer_test.add_image(

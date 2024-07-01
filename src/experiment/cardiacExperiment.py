@@ -1,11 +1,12 @@
 from typing import Tuple
 
 import torch
+from src.dataloader.dataset.cardiac_dataset import CardiacDataset
 from src.experiment.experimentbase import ExperimentBase
 from torch.utils.data import random_split
 from torch.utils.data.dataloader import DataLoader
 from torchvision.transforms import v2
-from torchvision.transforms.v2.functional import crop, resize
+from torchvision.transforms.v2.functional import crop
 
 from src.dataloader.dataloader import CardiacDatasetHDF5
 from src.dataloader.transform import ToNormalized
@@ -27,9 +28,8 @@ class CardiacExperiment(ExperimentBase):
         super().__init__()
 
         self.train_dataloader, self.test_dataloader = (
-            create_cardiac_dataloader_traintest_attention(
+            create_cardiac_dataloader_traintest(
                 path=hyperparameter.data_path,
-                path2=hyperparameter.data_path2,
                 batch_size=hyperparameter.batch_size_train,
             )
         )
@@ -75,7 +75,7 @@ class CardiacExperiment(ExperimentBase):
 random_generator = torch.Generator().manual_seed(1234)
 
 
-def train_collate_fn(data):
+def trainc_collate_fn_with_random_size(data):
     if torch.rand(1, generator=random_generator)[0] > 0.5:
         current_size = 512
     else:
@@ -99,47 +99,23 @@ def train_collate_fn(data):
     return (torch.stack(images), torch.stack(labels))
 
 
-def train_collate_fn_attention(data):
-    current_size = 512
-    images = []
-    labels = []
-
-    # If current_size is the same size as input
-    # skip cropping
-    if data[0][0].size(1) == current_size:
-        for x in data:
-            image, label = x
-            images.append(image)
-            labels.append(label)
-    else:
-        for x in data:
-            image, label = x
-            i, j, h, w = v2.RandomCrop.get_params(image, (current_size, current_size))
-            images.append(crop(image, i, j, h, w))
-            labels.append(crop(label, i, j, h, w))
-    return (torch.stack(images), torch.stack(labels))
-
-
-def test_collate_fn(data):
+def train_collate(data):
     images = []
     labels = []
     for x in data:
         image, label = x
-        image = image
-        label = label
-        images.append(resize(image, [512, 512]))
-        labels.append(resize(label, [512, 512]))
+        images.append(image)
+        labels.append(label)
     return (torch.stack(images), torch.stack(labels))
 
 
 def create_cardiac_dataloader_traintest(
     path: str,
-    path2: str,
     batch_size: int,
     seed: int = 12345678,
     num_workers: int = 4,
 ) -> Tuple[DataLoader, DataLoader]:
-    global_dataset = CardiacDatasetHDF5(data_path=path, data_path2=path2)
+    global_dataset = CardiacDataset(directory_path=path)
     SPLIT_PERCENTAGE = 0.8
 
     generator = torch.Generator().manual_seed(seed)
@@ -152,38 +128,7 @@ def create_cardiac_dataloader_traintest(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        collate_fn=train_collate_fn,
-        num_workers=num_workers,
-    )
-    test_dataloader = DataLoader(
-        test_dataset,
-        batch_size=batch_size,
-        num_workers=num_workers,
-    )
-    return train_dataloader, test_dataloader
-
-
-def create_cardiac_dataloader_traintest_attention(
-    path: str,
-    path2: str,
-    batch_size: int,
-    seed: int = 12345678,
-    num_workers: int = 4,
-) -> Tuple[DataLoader, DataLoader]:
-    global_dataset = CardiacDatasetHDF5(data_path=path, data_path2=path2)
-    SPLIT_PERCENTAGE = 0.8
-
-    generator = torch.Generator().manual_seed(seed)
-    train_dataset, test_dataset = random_split(
-        global_dataset,
-        [SPLIT_PERCENTAGE, 1 - SPLIT_PERCENTAGE],
-        generator,
-    )
-    train_dataloader = DataLoader(
-        train_dataset,
-        batch_size=batch_size,
-        shuffle=True,
-        collate_fn=train_collate_fn_attention,
+        collate_fn=train_collate,
         num_workers=num_workers,
     )
     test_dataloader = DataLoader(

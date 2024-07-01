@@ -2,7 +2,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-from dataloader.dataloader import UAVIDDataset
+from ..dataloader.dataloader import UAVIDDataset
 from torchvision.utils import draw_keypoints, draw_segmentation_masks
 import cv2
 
@@ -64,10 +64,13 @@ def visualize(
 
 
 def generate_visualization(
-    original_image,
-    prediction,
-    target,
+    original_image: torch.Tensor,
+    prediction: torch.Tensor,
+    target: torch.Tensor,
 ):
+    original_image = original_image.cpu()
+    prediction = prediction.cpu()
+    target = target.cpu()
     # Generate contours
     # and visualize as keypoints
     heart_mask = target[0].sigmoid()[2] > 0.5

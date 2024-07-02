@@ -117,39 +117,39 @@ class Trainer:
                     parameter.requires_grad = True
 
             initial_time = time.time()
-            # self._train_one_epoch(
-            #     epoch=epoch,
-            #     model=model,
-            #     dataloader=dataloader_train,
-            #     optimizer=optimizer,
-            #     loss_fn=loss_fn,
-            #     preprocess=preprocess,
-            #     device=device,
-            #     dtype=dtype,
-            #     scheduler=scheduler,
-            # )
+            self._train_one_epoch(
+                epoch=epoch,
+                model=model,
+                dataloader=dataloader_train,
+                optimizer=optimizer,
+                loss_fn=loss_fn,
+                preprocess=preprocess,
+                device=device,
+                dtype=dtype,
+                scheduler=scheduler,
+            )
             time_taken = time.time() - initial_time
             print(f"time_taken: {time_taken}s")
 
             if dataloader_test is not None:
-                # self._eval_one_epoch(
-                #     epoch=epoch,
-                #     model=model,
-                #     dataloader=dataloader_test,
-                #     loss_fn=loss_fn,
-                #     preprocess=preprocess,
-                #     device=device,
-                #     train_dataset_length=len(dataloader_train),
-                #     dtype=dtype,
-                # )
-                self._visualize_one_epoch(
+                self._eval_one_epoch(
                     epoch=epoch,
                     model=model,
                     dataloader=dataloader_test,
+                    loss_fn=loss_fn,
                     preprocess=preprocess,
-                    train_dataset_length=len(dataloader_train),
                     device=device,
+                    train_dataset_length=len(dataloader_train),
+                    dtype=dtype,
                 )
+                # self._visualize_one_epoch(
+                #     epoch=epoch,
+                #     model=model,
+                #     dataloader=dataloader_test,
+                #     preprocess=preprocess,
+                #     train_dataset_length=len(dataloader_train),
+                #     device=device,
+                # )
             self._save(model=model, epoch=epoch)
 
     def _save(self, model: torch.nn.Module, epoch: int):

@@ -153,7 +153,7 @@ class Trainer:
             self._save(model=model, epoch=epoch)
 
     def _save(self, model: torch.nn.Module, epoch: int):
-        self.model_saver.save_with_shape(model, epoch)
+        self.model_saver.save_without_shape(model, epoch)
 
     def _train_one_epoch(
         self,

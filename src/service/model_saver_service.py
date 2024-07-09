@@ -15,7 +15,7 @@ class ModelSaverService:
     def _generate_save_name(self, epoch: int):
         return f"{epoch}_model.pt"
 
-    def _checkAndExisting(self) -> bool:
+    def _checkAndExisting(self):
         if len(self.latest_model) > self.topk:
             first_epoch_to_delete = self.latest_model.pop(0)
             model_to_delete = self.model_directory.joinpath(

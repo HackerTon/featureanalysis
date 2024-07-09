@@ -9,7 +9,7 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import v2
 
-from src.experiment.cardiacExperiment import CardiacExperiment
+from src.experiment.cardiac_experiment import CardiacExperiment
 from src.experiment.textocrExperiment import TextocrExperiment
 from src.loss import dice_index, total_loss
 from src.service.hyperparamater import Hyperparameter
@@ -18,15 +18,13 @@ from ..utils.utils import generate_visualization
 
 
 class Trainer:
-    def __init__(self, train_report_rate: float = 0.1) -> None:
+    def __init__(self, train_report_rate: float = 0.0001) -> None:
         """
         train_report_rate: float = [0.0, 1.0]
         """
         timestamp = datetime.now().strftime(r"%Y%m%d_%H%M%S")
-        self.writer_train = SummaryWriter(
-            "data/log/training/train_{}".format(timestamp)
-        )
-        self.writer_test = SummaryWriter("data/log/training/test_{}".format(timestamp))
+        self.writer_train = SummaryWriter("data/log/{}_train".format(timestamp))
+        self.writer_test = SummaryWriter("data/log/{}_test".format(timestamp))
         self.model_saver = ModelSaverService(path=Path("data/model"), topk=2)
         self.train_report_rate = train_report_rate
 
@@ -190,7 +188,7 @@ class Trainer:
 
                 scaler.scale(loss).backward()
                 scaler.step(optimizer=optimizer)
-                if scheduler != None:
+                if scheduler is not None:
                     scheduler.step()
                 scaler.update()
                 optimizer.zero_grad(set_to_none=True)
@@ -227,7 +225,7 @@ class Trainer:
 
                 loss.backward()
                 optimizer.step()
-                if scheduler != None:
+                if scheduler is not None:
                     scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
 

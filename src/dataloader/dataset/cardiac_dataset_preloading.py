@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import torch
 from torch.utils.data import Dataset
 from torchvision.io import ImageReadMode, read_image
 
@@ -13,9 +12,8 @@ class CardiacDatasetPreloading(Dataset):
     ]
 
     def __init__(self, directory_path: str):
-        directory = Path(directory_path)
-        self.images = [x for x in directory.joinpath("image").glob("*.jpeg")]
-        self.labels = [x for x in directory.joinpath("label").glob("*.png")]
+        self.directory = Path(directory_path)
+        self.images = [x for x in self.directory.joinpath("image").glob("*.jpg")]
 
     def __len__(self):
         return len(self.images)
@@ -27,9 +25,10 @@ class CardiacDatasetPreloading(Dataset):
         )
         image = image.float() / 255
 
+        label_path = str(self.directory.joinpath('label', f'{self.images[index].name.split('.')[0]}.png').resolve())
+
         label = read_image(
-            str(self.labels[index].resolve()),
+            str(label_path),
             ImageReadMode.RGB,
         )
-        label = image.float()
         return image, label

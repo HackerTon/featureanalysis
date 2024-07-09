@@ -63,19 +63,11 @@ class CardiacDataset(Dataset):
             max=255,
         )
         mask_background = torch.clamp(
-            (mask_heart + mask_lung),
+            255 - (mask_heart + mask_lung),
             min=0,
             max=255,
         )
-        return torch.stack([mask_background, mask_lung, mask_lung])
-
-    @staticmethod
-    def mask_label(label):
-        labels = []
-        labels.append((label[0] == 0) & (label[1] == 0) & (label[2] == 0))
-        labels.append((label[0] == 128) & (label[1] == 0) & (label[2] == 0))
-        labels.append((label[0] == 128) & (label[1] == 64) & (label[2] == 128))
-        return torch.stack(labels)
+        return torch.stack([mask_background, mask_lung, mask_heart])
 
     def __getitem__(self, index):
         filename = self.images[index].name
@@ -96,3 +88,10 @@ class CardiacDataset(Dataset):
         )
         mask = CardiacDataset.resize_image(mask)
         return image, mask
+    
+
+# if __name__ == '__main__':
+#     for image, label in CardiacDataset('/pool/storage/dataset/chest'):
+#         print(label.min(), label.max())
+#         print(image.min(), image.max())
+#         break

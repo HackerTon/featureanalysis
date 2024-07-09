@@ -2,6 +2,7 @@ from typing import Tuple
 
 import torch
 from src.dataloader.dataset.cardiac_dataset import CardiacDataset
+from src.dataloader.dataset.cardiac_dataset_preloading import CardiacDatasetPreloading
 from src.experiment.experimentbase import ExperimentBase
 from torch.utils.data import random_split
 from torch.utils.data.dataloader import DataLoader
@@ -114,7 +115,7 @@ def create_cardiac_dataloader_traintest(
     seed: int = 12345678,
     num_workers: int = 4,
 ) -> Tuple[DataLoader, DataLoader]:
-    global_dataset = CardiacDataset(directory_path=path)
+    global_dataset = CardiacDatasetPreloading(directory_path=path)
     SPLIT_PERCENTAGE = 0.8
 
     generator = torch.Generator().manual_seed(seed)

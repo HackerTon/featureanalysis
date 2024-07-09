@@ -8,7 +8,6 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision.transforms import v2
 from torchvision.transforms.v2.functional import crop
 
-from src.dataloader.dataloader import CardiacDatasetHDF5
 from src.dataloader.transform import ToNormalized
 from src.model.model import (
     BackboneType,

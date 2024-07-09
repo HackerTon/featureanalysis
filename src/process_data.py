@@ -83,11 +83,11 @@ class CardiacDataProcessor:
             max=255,
         )
         mask_background = torch.clamp(
-            (mask_heart + mask_lung),
+            255 - (mask_heart + mask_lung),
             min=0,
             max=255,
         )
-        return torch.stack([mask_background, mask_lung, mask_lung])
+        return torch.stack([mask_background, mask_lung, mask_heart])
 
     @staticmethod
     def _process(job: JobData):

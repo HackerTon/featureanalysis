@@ -50,7 +50,6 @@ class CardiacDataset(Dataset):
 
     @staticmethod
     def generate_mask(rle_lung_left, rle_lung_right, rle_heart, height, width):
-        output_image = torch.zeros([height, width, 3], dtype=torch.uint8)
         mask_lung_left = CardiacDataset.rle_to_mask(
             rle_lung_left, height=height, width=width
         )
@@ -58,15 +57,17 @@ class CardiacDataset(Dataset):
             rle_lung_right, height=height, width=width
         )
         mask_heart = CardiacDataset.rle_to_mask(rle_heart, height=height, width=width)
-        output_image[((mask_lung_left + mask_lung_right) == 255)] = torch.tensor(
-            [128, 0, 0],
-            dtype=torch.uint8,
+        mask_lung = torch.clamp(
+            (mask_lung_left + mask_lung_right),
+            min=0,
+            max=255,
         )
-        output_image[mask_heart == 255] = torch.tensor(
-            [128, 64, 128],
-            dtype=torch.uint8,
+        mask_background = torch.clamp(
+            (mask_heart + mask_lung),
+            min=0,
+            max=255,
         )
-        return output_image.permute([2, 0, 1])
+        return torch.stack([mask_background, mask_lung, mask_lung])
 
     @staticmethod
     def mask_label(label):
@@ -78,7 +79,10 @@ class CardiacDataset(Dataset):
 
     def __getitem__(self, index):
         filename = self.images[index].name
-        image = read_image(str(self.images[index].resolve()), ImageReadMode.RGB)
+        image = read_image(
+            str(self.images[index].resolve()),
+            ImageReadMode.RGB,
+        )
         image = CardiacDataset.resize_image(image)
         image = image.float() / 255
 

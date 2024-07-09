@@ -13,5 +13,5 @@ savedmodel
 *train
 .vscode
 data/
-*.DS_STORE
+*.DS_Store
 __pycache__

@@ -1,7 +1,6 @@
 from typing import Tuple
 
 import torch
-from src.dataloader.dataset.cardiac_dataset import CardiacDataset
 from src.dataloader.dataset.cardiac_dataset_preloading import CardiacDatasetPreloading
 from src.experiment.experimentbase import ExperimentBase
 from torch.utils.data import random_split
@@ -9,7 +8,7 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision.transforms import v2
 from torchvision.transforms.v2.functional import crop
 
-from src.dataloader.transform import ToNormalized
+from src.dataloader.transform import ImagenetNormalize, ToNormalized
 from src.model.model import (
     BackboneType,
     MultiNet,
@@ -52,7 +51,7 @@ class CardiacExperiment(ExperimentBase):
         self.preprocessor = v2.Compose(
             [
                 ToNormalized(),
-                v2.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+                ImagenetNormalize(),
             ]
         )
 

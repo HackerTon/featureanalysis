@@ -16,6 +16,8 @@ from src.service.hyperparamater import Hyperparameter
 from src.service.model_saver_service import ModelSaverService
 from ..utils.utils import generate_visualization
 
+from tqdm import tqdm
+
 
 class Trainer:
     def __init__(self, train_report_rate: float = 0.0001) -> None:
@@ -140,14 +142,14 @@ class Trainer:
                     train_dataset_length=len(dataloader_train),
                     dtype=dtype,
                 )
-                # self._visualize_one_epoch(
-                #     epoch=epoch,
-                #     model=model,
-                #     dataloader=dataloader_test,
-                #     preprocess=preprocess,
-                #     train_dataset_length=len(dataloader_train),
-                #     device=device,
-                # )
+                self._visualize_one_epoch(
+                    epoch=epoch,
+                    model=model,
+                    dataloader=dataloader_test,
+                    preprocess=preprocess,
+                    train_dataset_length=len(dataloader_train),
+                    device=device,
+                )
             self._save(model=model, epoch=epoch)
 
     def _save(self, model: torch.nn.Module, epoch: int):
@@ -171,7 +173,10 @@ class Trainer:
 
         if device != "mps":
             scaler = torch.cuda.amp.grad_scaler.GradScaler()
-            for index, data in enumerate(dataloader):
+            for index, data in tqdm(
+                enumerate(dataloader),
+                total=len(dataloader),
+            ):
                 with torch.autocast(
                     device_type=device, dtype=dtype, enabled=device != "mps"
                 ):

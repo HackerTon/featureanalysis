@@ -23,10 +23,7 @@ class CardiacDatasetPreloading(Dataset):
             str(self.images[index].resolve()),
             ImageReadMode.RGB,
         )
-        image = image.float() / 255
-
         label_path = str(self.directory.joinpath('label', f'{self.images[index].name.split('.')[0]}.png').resolve())
-
         label = read_image(
             str(label_path),
             ImageReadMode.RGB,

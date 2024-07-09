@@ -76,8 +76,6 @@ class CardiacDataset(Dataset):
             ImageReadMode.RGB,
         )
         image = CardiacDataset.resize_image(image)
-        image = image.float() / 255
-
         data_row = self.csv.loc[filename]
         mask = CardiacDataset.generate_mask(
             data_row["Left Lung"],

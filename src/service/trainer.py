@@ -142,14 +142,14 @@ class Trainer:
                     train_dataset_length=len(dataloader_train),
                     dtype=dtype,
                 )
-                self._visualize_one_epoch(
-                    epoch=epoch,
-                    model=model,
-                    dataloader=dataloader_test,
-                    preprocess=preprocess,
-                    train_dataset_length=len(dataloader_train),
-                    device=device,
-                )
+                # self._visualize_one_epoch(
+                #     epoch=epoch,
+                #     model=model,
+                #     dataloader=dataloader_test,
+                #     preprocess=preprocess,
+                #     train_dataset_length=len(dataloader_train),
+                #     device=device,
+                # )
             self._save(model=model, epoch=epoch)
 
     def _save(self, model: torch.nn.Module, epoch: int):

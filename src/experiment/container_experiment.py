@@ -8,7 +8,7 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision.transforms import v2
 from torchvision.transforms.v2.functional import crop
 
-from src.dataloader.transform import ImagenetNormalize, ToNormalized
+from src.dataloader.transform import ImagenetNormalize, ToNormalized, RandomResize
 from src.model.model import (
     BackboneType,
     MultiNet,
@@ -37,22 +37,30 @@ class ContainerExperiment(ExperimentBase):
         )
 
         if model == "unet":
-            self.model = UNETNetwork(numberClass=3)
+            self.model = UNETNetwork(numberClass=2)
         elif model == "multinet":
-            self.model = MultiNet(numberClass=3, backboneType=BackboneType.RESNET50)
+            self.model = MultiNet(
+                numberClass=2,
+                backboneType=BackboneType.RESNET50,
+            )
         elif model == "fpn":
             self.model = FPNNetwork(numberClass=3)
         elif model == "multinetv2":
-            self.model = MultiNetV2(numberClass=3, backboneType=BackboneType.RESNET50)
+            self.model = MultiNetV2(
+                numberClass=2,
+                backboneType=BackboneType.RESNET50,
+            )
         elif model == "multinetwithattention":
             self.model = MultiNetWithAttention(
-                numberClass=3, backboneType=BackboneType.RESNET50
+                numberClass=2,
+                backboneType=BackboneType.RESNET50,
             )
         else:
             raise Exception(f"missing model {model}")
 
         self.preprocessor = v2.Compose(
             [
+                RandomResize(),
                 ToNormalized(),
                 ImagenetNormalize(),
             ]

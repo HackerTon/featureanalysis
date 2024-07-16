@@ -10,7 +10,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import v2
 
 from src.experiment.cardiac_experiment import CardiacExperiment
-from src.experiment.textocrExperiment import TextocrExperiment
+from src.experiment.container_experiment import ContainerExperiment
 from src.loss import dice_index, total_loss
 from src.service.hyperparamater import Hyperparameter
 from src.service.model_saver_service import ModelSaverService
@@ -37,7 +37,11 @@ class Trainer:
         experiment_num: int,
     ):
         if experiment_num == 0:
-            experiment = TextocrExperiment(hyperparameter=hyperparameter, device=device)
+            experiment = ContainerExperiment(
+                hyperparameter=hyperparameter,
+                device=device,
+                model="multinet",
+            )
         elif experiment_num == 1:
             experiment = CardiacExperiment(
                 hyperparameter=hyperparameter,
@@ -112,7 +116,7 @@ class Trainer:
             print(f"Training epoch {epoch + 1}, ", end="")
 
             # Unfreeze backbone at epoch 2
-            if epoch == 2:
+            if epoch == 10:
                 for parameter in model.backbone.parameters():
                     parameter.requires_grad = True
 

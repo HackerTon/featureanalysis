@@ -3,6 +3,7 @@ from pathlib import Path
 
 import torch
 from torch.utils.data import Dataset
+from torchvision.transforms.functional import resize
 from torchvision.io.image import ImageReadMode, read_image
 
 
@@ -54,7 +55,15 @@ class ContainerDataset(Dataset):
         )
         foreground_mask[y:y2, x:x2] = 255
         background_mask = torch.abs(255 - foreground_mask)
-        return torch.stack([background_mask, foreground_mask])
+        background_mask = resize(
+            background_mask.unsqueeze(0),
+            size=[1080, 1920],
+        )
+        foreground_mask = resize(
+            foreground_mask.unsqueeze(0),
+            size=[1080, 1920],
+        )
+        return torch.concatenate([background_mask, foreground_mask])
 
     def __getitem__(self, index):
         image_path = f"{self.image_label[index]['image_filename']}"
@@ -68,6 +77,7 @@ class ContainerDataset(Dataset):
             image_height=image.shape[1],
             image_width=image.shape[2],
         )
+        image = resize(image, [1080, 1920])
         return image, masks
 
 

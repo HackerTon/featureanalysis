@@ -9,7 +9,6 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import v2
 
-from src.experiment.cardiac_experiment import CardiacExperiment
 from src.experiment.container_experiment import ContainerExperiment
 from src.loss import dice_index, total_loss
 from src.service.hyperparamater import Hyperparameter
@@ -20,60 +19,42 @@ from tqdm import tqdm
 
 
 class Trainer:
-    def __init__(self, train_report_rate: float = 0.0001) -> None:
+    def __init__(
+        self,
+        name: str,
+        hyperparameter: Hyperparameter,
+        train_report_rate: float = 0.001,
+    ):
         """
         train_report_rate: float = [0.0, 1.0]
         """
         timestamp = datetime.now().strftime(r"%Y%m%d_%H%M%S")
-        self.writer_train = SummaryWriter("data/log/{}_train".format(timestamp))
-        self.writer_test = SummaryWriter("data/log/{}_test".format(timestamp))
-        self.model_saver = ModelSaverService(path=Path("data/model"), topk=2)
+        self.writer_train = SummaryWriter(
+            "data/log/{}_train_{}".format(
+                timestamp,
+                name.replace(" ", "_"),
+            )
+        )
+        self.writer_test = SummaryWriter(
+            "data/log/{}_test_{}".format(
+                timestamp,
+                name.replace(" ", "_"),
+            )
+        )
+        self.model_saver = ModelSaverService(
+            path=Path("data/model"),
+            topk=2,
+            name=name,
+        )
         self.train_report_rate = train_report_rate
+        self.hyperparameter = hyperparameter
 
-    def run_trainer(
-        self,
-        device: str,
-        hyperparameter: Hyperparameter,
-        experiment_num: int,
-    ):
-        if experiment_num == 0:
-            experiment = ContainerExperiment(
-                hyperparameter=hyperparameter,
-                device=device,
-                model="multinet",
-            )
-        elif experiment_num == 1:
-            experiment = CardiacExperiment(
-                hyperparameter=hyperparameter,
-                device=device,
-                model="multinet",
-            )
-        elif experiment_num == 2:
-            experiment = CardiacExperiment(
-                hyperparameter=hyperparameter,
-                device=device,
-                model="unet",
-            )
-        elif experiment_num == 3:
-            experiment = CardiacExperiment(
-                hyperparameter=hyperparameter,
-                device=device,
-                model="fpn",
-            )
-        elif experiment_num == 4:
-            experiment = CardiacExperiment(
-                hyperparameter=hyperparameter,
-                device=device,
-                model="multinetv2",
-            )
-        elif experiment_num == 5:
-            experiment = CardiacExperiment(
-                hyperparameter=hyperparameter,
-                device=device,
-                model="multinetwithattention",
-            )
-        else:
-            print(f"Your experiment number ({experiment_num}) not found")
+    def run_trainer(self, device: str):
+        experiment = ContainerExperiment(
+            hyperparameter=self.hyperparameter,
+            device=device,
+            model="multinet",
+        )
 
         train_dataloader = experiment["train_dataloader"]
         test_dataloader = experiment["test_dataloader"]
@@ -82,9 +63,8 @@ class Trainer:
         preprocessor = experiment["preprocessor"]
         optimizer = experiment["optimizer"]
 
-        # Run
         self.train(
-            epochs=hyperparameter.epoch,
+            epochs=self.hyperparameter.epoch,
             model=model,
             dataloader_train=train_dataloader,
             dataloader_test=test_dataloader,

@@ -41,7 +41,7 @@ class ContainerExperiment(ExperimentBase):
         elif model == "multinet":
             self.model = MultiNet(
                 numberClass=2,
-                backboneType=BackboneType.RESNET50,
+                backboneType=BackboneType.RESNET34,
             )
         elif model == "fpn":
             self.model = FPNNetwork(numberClass=3)
@@ -140,6 +140,7 @@ def create_container_dataloader_traintest(
         shuffle=True,
         collate_fn=train_collate,
         num_workers=num_workers,
+        prefetch_factor=4,
     )
     test_dataloader = DataLoader(
         test_dataset,

@@ -4,16 +4,17 @@ from os import remove
 
 
 class ModelSaverService:
-    def __init__(self, path: Path, topk: int = 2) -> None:
+    def __init__(self, path: Path, topk: int = 2, name="default") -> None:
         self.model_directory = path
         self.topk = topk
+        self.name = name.replace(" ", "_")
         self.latest_model = []
 
         if not self.model_directory.exists():
             self.model_directory.mkdir(parents=True)
 
     def _generate_save_name(self, epoch: int):
-        return f"{epoch}_model.pt"
+        return f"{epoch}_{self.name}_model.pt"
 
     def _checkAndExisting(self):
         if len(self.latest_model) > self.topk:

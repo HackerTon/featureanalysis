@@ -155,52 +155,12 @@ class Trainer:
         running_loss = 0.0
         running_iou = 0.0
 
-        if device != "mps":
-            scaler = torch.cuda.amp.grad_scaler.GradScaler()
-            for index, data in tqdm(
-                enumerate(dataloader),
-                total=len(dataloader),
-            ):
-                with torch.autocast(
-                    device_type=device, dtype=dtype, enabled=device != "mps"
-                ):
-                    inputs: torch.Tensor
-                    labels: torch.Tensor
-                    inputs, labels = data
-
-                    inputs, labels = inputs.to(device), labels.to(device)
-                    inputs, labels = preprocess(inputs, labels)
-
-                    outputs = model(inputs)
-                    loss = loss_fn(outputs, labels)
-                    iou_score = dice_index(outputs.sigmoid(), labels)
-
-                scaler.scale(loss).backward()
-                scaler.step(optimizer=optimizer)
-                if scheduler is not None:
-                    scheduler.step()
-                scaler.update()
-                optimizer.zero_grad(set_to_none=True)
-
-                running_loss += loss.item()
-                running_iou += iou_score.item()
-
-                if index % rate_to_print == (rate_to_print - 1):
-                    current_training_sample = epoch * len(dataloader) + index + 1
-                    self.writer_train.add_scalar(
-                        "loss",
-                        running_loss / rate_to_print,
-                        current_training_sample,
-                    )
-                    self.writer_train.add_scalar(
-                        "iou_score",
-                        running_iou / rate_to_print,
-                        current_training_sample,
-                    )
-                    running_loss = 0.0
-                    running_iou = 0.0
-        else:
-            for index, data in enumerate(dataloader):
+        scaler = torch.cuda.amp.grad_scaler.GradScaler()
+        for index, data in tqdm(
+            enumerate(dataloader),
+            total=len(dataloader),
+        ):
+            with torch.autocast(device_type=device, dtype=dtype):
                 inputs: torch.Tensor
                 labels: torch.Tensor
                 inputs, labels = data
@@ -212,29 +172,30 @@ class Trainer:
                 loss = loss_fn(outputs, labels)
                 iou_score = dice_index(outputs.sigmoid(), labels)
 
-                loss.backward()
-                optimizer.step()
-                if scheduler is not None:
-                    scheduler.step()
-                optimizer.zero_grad(set_to_none=True)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer=optimizer)
+            if scheduler is not None:
+                scheduler.step()
+            scaler.update()
+            optimizer.zero_grad(set_to_none=True)
 
-                running_loss += loss.item()
-                running_iou += iou_score.item()
+            running_loss += loss.item()
+            running_iou += iou_score.item()
 
-                if index % rate_to_print == (rate_to_print - 1):
-                    current_training_sample = epoch * len(dataloader) + index + 1
-                    self.writer_train.add_scalar(
-                        "loss",
-                        running_loss / rate_to_print,
-                        current_training_sample,
-                    )
-                    self.writer_train.add_scalar(
-                        "iou_score",
-                        running_iou / rate_to_print,
-                        current_training_sample,
-                    )
-                    running_loss = 0.0
-                    running_iou = 0.0
+            if index % rate_to_print == (rate_to_print - 1):
+                current_training_sample = epoch * len(dataloader) + index + 1
+                self.writer_train.add_scalar(
+                    "loss",
+                    running_loss / rate_to_print,
+                    current_training_sample,
+                )
+                self.writer_train.add_scalar(
+                    "iou_score",
+                    running_iou / rate_to_print,
+                    current_training_sample,
+                )
+                running_loss = 0.0
+                running_iou = 0.0
 
     def _eval_one_epoch(
         self,
@@ -250,25 +211,8 @@ class Trainer:
         sum_loss = 0.0
         sum_iou = 0.0
 
-        if device != "mps":
-            with torch.no_grad():
-                with torch.autocast(device_type=device, dtype=dtype):
-                    for data in dataloader:
-                        inputs: torch.Tensor
-                        labels: torch.Tensor
-                        inputs, labels = data
-
-                        inputs, labels = inputs.to(device), labels.to(device)
-                        inputs, labels = preprocess(inputs, labels)
-
-                        outputs = model(inputs)
-                        loss = loss_fn(outputs, labels)
-                        iou_score = dice_index(outputs.sigmoid(), labels)
-
-                        sum_loss += loss.item()
-                        sum_iou += iou_score.item()
-        else:
-            with torch.no_grad():
+        with torch.no_grad():
+            with torch.autocast(device_type=device, dtype=dtype):
                 for data in dataloader:
                     inputs: torch.Tensor
                     labels: torch.Tensor

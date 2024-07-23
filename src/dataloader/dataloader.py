@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-import h5py
+# import h5py
 import torch
 from torch.utils.data import Dataset
 from torchvision.io import ImageReadMode, read_image
@@ -256,32 +256,32 @@ class LungDataset(Dataset):
         return read_image(image_path, ImageReadMode.RGB)
 
 
-class CardiacDatasetHDF5(Dataset):
-    dataset_labels = [
-        "background",
-        "lung",
-        "heart",
-    ]
+# class CardiacDatasetHDF5(Dataset):
+#     dataset_labels = [
+#         "background",
+#         "lung",
+#         "heart",
+#     ]
 
-    def __init__(self, data_path: str, data_path2: str):
-        self.data_path = Path(data_path)
-        self.data_path2 = Path(data_path2)
-        self.dataset_image = None
-        self.dataset_label = None
-        with h5py.File(str(self.data_path.joinpath("train_image.hdf5")), "r") as file:
-            self.dataset_length = len(file["image"])
+#     def __init__(self, data_path: str, data_path2: str):
+#         self.data_path = Path(data_path)
+#         self.data_path2 = Path(data_path2)
+#         self.dataset_image = None
+#         self.dataset_label = None
+#         with h5py.File(str(self.data_path.joinpath("train_image.hdf5")), "r") as file:
+#             self.dataset_length = len(file["image"])
 
-    def __len__(self):
-        return self.dataset_length
+#     def __len__(self):
+#         return self.dataset_length
 
-    def __getitem__(self, index):
-        if self.dataset_image is None and self.dataset_label is None:
-            self.dataset_image = h5py.File(
-                str(self.data_path.joinpath("train_image.hdf5")), "r"
-            )["image"]
-            self.dataset_label = h5py.File(
-                str(self.data_path2.joinpath("train_label.hdf5")), "r"
-            )["label"]
-        return torch.tensor(self.dataset_image[index]), torch.tensor(
-            self.dataset_label[index]
-        )
+#     def __getitem__(self, index):
+#         if self.dataset_image is None and self.dataset_label is None:
+#             self.dataset_image = h5py.File(
+#                 str(self.data_path.joinpath("train_image.hdf5")), "r"
+#             )["image"]
+#             self.dataset_label = h5py.File(
+#                 str(self.data_path2.joinpath("train_label.hdf5")), "r"
+#             )["label"]
+#         return torch.tensor(self.dataset_image[index]), torch.tensor(
+#             self.dataset_label[index]
+#         )

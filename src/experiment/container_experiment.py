@@ -6,27 +6,21 @@ from src.experiment.experimentbase import ExperimentBase
 from torch.utils.data import random_split
 from torch.utils.data.dataloader import DataLoader
 from torchvision.transforms import v2
-from torchvision.transforms.v2.functional import crop
+from torchvision.transforms.v2.functional import crop, five_crop
 
-from src.dataloader.transform import ImagenetNormalize, ToNormalized, RandomResize
+from src.dataloader.transform import (
+    ImagenetNormalize,
+    ToNormalized,
+)
 from src.model.model import (
-    BackboneType,
-    MultiNet,
-    MultiNetV2,
-    UNETNetwork,
-    FPNNetwork,
-    MultiNetWithAttention,
+    FPNNetwork_new,
+    FPNNetwork
 )
 from src.service.hyperparamater import Hyperparameter
 
 
 class ContainerExperiment(ExperimentBase):
-    def __init__(
-        self,
-        hyperparameter: Hyperparameter,
-        device: str,
-        model="multinet",
-    ) -> None:
+    def __init__(self, hyperparameter: Hyperparameter, device: str) -> None:
         super().__init__()
 
         self.train_dataloader, self.test_dataloader = (
@@ -36,31 +30,33 @@ class ContainerExperiment(ExperimentBase):
             )
         )
 
-        if model == "unet":
-            self.model = UNETNetwork(numberClass=2)
-        elif model == "multinet":
-            self.model = MultiNet(
-                numberClass=2,
-                backboneType=BackboneType.RESNET34,
-            )
-        elif model == "fpn":
-            self.model = FPNNetwork(numberClass=3)
-        elif model == "multinetv2":
-            self.model = MultiNetV2(
-                numberClass=2,
-                backboneType=BackboneType.RESNET50,
-            )
-        elif model == "multinetwithattention":
-            self.model = MultiNetWithAttention(
-                numberClass=2,
-                backboneType=BackboneType.RESNET50,
-            )
-        else:
-            raise Exception(f"missing model {model}")
+        # self.model = UNETNetwork(numberClass=2)
+        self.model = FPNNetwork(numberClass=2)
+
+        # if model == "unet":
+        #     self.model = UNETNetwork(numberClass=2)
+        # elif model == "multinet":
+        #     self.model = MultiNet(
+        #         numberClass=2,
+        #         backboneType=BackboneType.RESNET34,
+        #     )
+        # elif model == "fpn":
+        #     self.model = FPNNetwork(numberClass=3)
+        # elif model == "multinetv2":
+        #     self.model = MultiNetV2(
+        #         numberClass=2,
+        #         backboneType=BackboneType.RESNET50,
+        #     )
+        # elif model == "multinetwithattention":
+        #     self.model = MultiNetWithAttention(
+        #         numberClass=2,
+        #         backboneType=BackboneType.RESNET50,
+        #     )
+        # else:
+        #     raise Exception(f"missing model {model}")
 
         self.preprocessor = v2.Compose(
             [
-                RandomResize(),
                 ToNormalized(),
                 ImagenetNormalize(),
             ]
@@ -72,24 +68,21 @@ class ContainerExperiment(ExperimentBase):
         self.optimizer = torch.optim.AdamW(
             params=self.model.parameters(),
             lr=hyperparameter.learning_rate,
-            fused=True if device == "cuda" else False,
+            # fused=True if device == "cuda" else False,
         )
-        self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
-            optimizer=self.optimizer,
-            max_lr=hyperparameter.learning_rate,
-            steps_per_epoch=len(self.train_dataloader),
-            epochs=hyperparameter.epoch,
-        )
+        # self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
+        #     optimizer=self.optimizer,
+        #     max_lr=hyperparameter.learning_rate,
+        #     steps_per_epoch=len(self.train_dataloader),
+        #     epochs=hyperparameter.epoch,
+        # )
 
 
 random_generator = torch.Generator().manual_seed(1234)
 
 
-def trainc_collate_fn_with_random_size(data):
-    if torch.rand(1, generator=random_generator)[0] > 0.5:
-        current_size = 512
-    else:
-        current_size = 256
+def train_collate(data):
+    current_size = 512
     images = []
     labels = []
 
@@ -109,13 +102,16 @@ def trainc_collate_fn_with_random_size(data):
     return (torch.stack(images), torch.stack(labels))
 
 
-def train_collate(data):
+def test_collate(data):
     images = []
     labels = []
     for x in data:
         image, label = x
-        images.append(image)
-        labels.append(label)
+        split_image = five_crop(image, [512, 512])
+        split_label = five_crop(label, [512, 512])
+        for i in range(5):
+            images.append(split_image[i])
+            labels.append(split_label[i])
     return (torch.stack(images), torch.stack(labels))
 
 
@@ -140,11 +136,11 @@ def create_container_dataloader_traintest(
         shuffle=True,
         collate_fn=train_collate,
         num_workers=num_workers,
-        prefetch_factor=4,
     )
     test_dataloader = DataLoader(
         test_dataset,
-        batch_size=batch_size,
+        collate_fn=test_collate,
+        batch_size=8,
         num_workers=num_workers,
     )
     return train_dataloader, test_dataloader

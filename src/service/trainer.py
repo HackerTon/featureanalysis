@@ -28,21 +28,19 @@ class Trainer:
         """
         train_report_rate: float = [0.0, 1.0]
         """
+
+        torch.manual_seed(123456)
+
         timestamp = datetime.now().strftime(r"%Y%m%d_%H%M%S")
-        self.writer_train = SummaryWriter(
-            "data/log/{}_train_{}".format(
-                timestamp,
-                name.replace(" ", "_"),
-            )
+        directory_name = "data/model/{}_{}".format(
+            timestamp,
+            name.replace(" ", "_"),
         )
-        self.writer_test = SummaryWriter(
-            "data/log/{}_test_{}".format(
-                timestamp,
-                name.replace(" ", "_"),
-            )
-        )
+
+        self.writer_train = SummaryWriter(f"{directory_name}/train")
+        self.writer_test = SummaryWriter(f"{directory_name}/test")
         self.model_saver = ModelSaverService(
-            path=Path("data/model"),
+            path=Path(f"{directory_name}"),
             topk=2,
             name=name,
         )
@@ -53,7 +51,6 @@ class Trainer:
         experiment = ContainerExperiment(
             hyperparameter=self.hyperparameter,
             device=device,
-            model="multinet",
         )
 
         train_dataloader = experiment["train_dataloader"]
@@ -96,7 +93,7 @@ class Trainer:
             print(f"Training epoch {epoch + 1}, ", end="")
 
             # Unfreeze backbone at epoch 2
-            if epoch == 10:
+            if epoch == 2:
                 for parameter in model.backbone.parameters():
                     parameter.requires_grad = True
 

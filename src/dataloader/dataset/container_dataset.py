@@ -3,7 +3,7 @@ from pathlib import Path
 
 import torch
 from torch.utils.data import Dataset
-from torchvision.transforms.functional import resize
+from torchvision.transforms.functional import resize, crop
 from torchvision.io.image import ImageReadMode, read_image
 
 
@@ -22,6 +22,8 @@ class ContainerDataset(Dataset):
             for image in jsonData["images"]:
                 image_id = image["id"]
                 image_filename = image["file_name"]
+                image_height = image["height"]
+                image_width = image["width"]
                 for annotation in jsonData["annotations"]:
                     if annotation["image_id"] == image_id:
                         bounding_box = annotation["bbox"]
@@ -69,7 +71,7 @@ class ContainerDataset(Dataset):
         image_path = f"{self.image_label[index]['image_filename']}"
         image = self.decode_image(str(self.directory.joinpath(image_path)))
         x1, y1, x2, y2 = self.image_label[index]["bbox"]
-        masks = self.generate_mask(
+        mask = self.generate_mask(
             x=x1,
             y=y1,
             x2=x2,
@@ -77,18 +79,19 @@ class ContainerDataset(Dataset):
             image_height=image.shape[1],
             image_width=image.shape[2],
         )
-        image = resize(image, [1080, 1920])
-        return image, masks
+        resized_image = resize(image, [1080, 1920])
+        return resized_image, mask
 
 
 if __name__ == "__main__":
     from torchvision.io import write_jpeg
 
     dataset = ContainerDataset(
-        directory_path="/Users/babi/Downloads/container_dataset_2"
+        directory_path="/pool/labelstudio/dataset/container_dataset_2"
     )
     for image, mask in dataset:
         print(image.shape)
         print(mask.shape)
-        write_jpeg(mask[0].unsqueeze(0), "mask.jpg")
+        write_jpeg(image, "image.jpg")
+        write_jpeg(mask[1].unsqueeze(0), "mask.jpg")
         break

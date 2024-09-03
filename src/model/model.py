@@ -76,6 +76,124 @@ class UNETNetwork(nn.Module):
         return self.upsampling_2x_bilinear(self.convfinal(featout))
 
 
+class FPNNetwork_new(nn.Module):
+    def __init__(self, numberClass):
+        super().__init__()
+        backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V2)
+        self.backbone = create_feature_extractor(
+            backbone,
+            {
+                "layer1": "feat2",
+                "layer2": "feat3",
+                "layer3": "feat4",
+                "layer4": "feat5",
+            },
+        )
+
+        # Freeze backbone
+        for param in self.backbone.parameters():
+            param.requires_grad = False
+
+        self.upsampling_2x_bilinear = nn.UpsamplingBilinear2d(scale_factor=2)
+        self.upsampling_4x_bilinear = nn.UpsamplingBilinear2d(scale_factor=4)
+        self.upsampling_8x_bilinear = nn.UpsamplingBilinear2d(scale_factor=8)
+
+        self.conv5 = nn.Conv2d(
+            in_channels=2048,
+            out_channels=1024,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv6 = nn.Conv2d(
+            in_channels=1024,
+            out_channels=512,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv7 = nn.Conv2d(
+            in_channels=512,
+            out_channels=256,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv8 = nn.Conv2d(
+            in_channels=256,
+            out_channels=128,
+            kernel_size=3,
+            padding=1,
+        )
+        self.convfinal = nn.Conv2d(
+            in_channels=128,
+            out_channels=numberClass,
+            kernel_size=1,
+        )
+
+        self.conv5_3x3_1 = nn.Conv2d(
+            in_channels=1024,
+            out_channels=128,
+            kernel_size=3,
+            padding="same",
+        )
+        self.conv4_3x3_1 = nn.Conv2d(
+            in_channels=512,
+            out_channels=128,
+            kernel_size=3,
+            padding="same",
+        )
+        self.conv3_3x3_1 = nn.Conv2d(
+            in_channels=256,
+            out_channels=128,
+            kernel_size=3,
+            padding="same",
+        )
+        self.conv2_3x3_1 = nn.Conv2d(
+            in_channels=128,
+            out_channels=128,
+            kernel_size=3,
+            padding="same",
+        )
+        self.final_conv = nn.Conv2d(
+            in_channels=512,
+            out_channels=numberClass,
+            kernel_size=1,
+        )
+
+    def forward(self, x):
+        backbone_output = self.backbone(x)
+        feat2, feat3, feat4, feat5 = (
+            backbone_output["feat2"],
+            backbone_output["feat3"],
+            backbone_output["feat4"],
+            backbone_output["feat5"],
+        )
+        feat4to6 = self.upsampling_2x_bilinear(self.conv5(feat5).relu())
+        feat3to7 = self.upsampling_2x_bilinear(self.conv6(feat4 + feat4to6).relu())
+        feat2to8 = self.upsampling_2x_bilinear(self.conv7(feat3 + feat3to7).relu())
+        featout = self.upsampling_2x_bilinear(self.conv8(feat2 + feat2to8).relu())
+
+        conv5_prediction = self.conv5_3x3_1(feat4to6).relu()
+        conv4_prediction = self.conv4_3x3_1(feat3to7).relu()
+        conv3_prediction = self.conv3_3x3_1(feat2to8).relu()
+        conv2_prediction = self.conv2_3x3_1(featout)
+
+        final_prediction_5 = self.upsampling_8x_bilinear(conv5_prediction)
+        final_prediction_4 = self.upsampling_4x_bilinear(conv4_prediction)
+        final_prediction_3 = self.upsampling_2x_bilinear(conv3_prediction)
+        final_prediction_2 = conv2_prediction
+
+        concatenated_prediction = torch.concatenate(
+            [
+                final_prediction_5,
+                final_prediction_4,
+                final_prediction_3,
+                final_prediction_2,
+            ],
+            dim=1,
+        )
+
+        return self.upsampling_2x_bilinear(self.final_conv(concatenated_prediction))
+
+
 class FPNNetwork(nn.Module):
     def __init__(self, numberClass):
         super().__init__()
@@ -169,14 +287,8 @@ class FPNNetwork(nn.Module):
             kernel_size=3,
             padding=1,
         )
-        self.final_conv_1 = nn.Conv2d(
+        self.final_conv = nn.Conv2d(
             in_channels=512,
-            kernel_size=3,
-            out_channels=256,
-            padding=1,
-        )
-        self.final_conv_2 = nn.Conv2d(
-            in_channels=256,
             out_channels=numberClass,
             kernel_size=1,
         )
@@ -224,8 +336,7 @@ class FPNNetwork(nn.Module):
             dim=1,
         )
 
-        concatenated_prediction = self.final_conv_1(concatenated_prediction).relu()
-        concatenated_prediction = self.final_conv_2(concatenated_prediction).relu()
+        concatenated_prediction = self.final_conv(concatenated_prediction)
         return self.upsampling_4x_bilinear(concatenated_prediction)
 
 
@@ -459,8 +570,8 @@ class MultiNetV2(nn.Module):
         self.conv8_m = nn.Conv2d(
             in_channels=128,
             out_channels=numberClass,
-            kernel_size=3,
-            padding=1,
+            kernel_size=1,
+            padding="same",
         )
         self.convfinal = nn.Conv2d(
             in_channels=128,
@@ -488,13 +599,13 @@ class MultiNetV2(nn.Module):
             self.conv8(feat2 + featoutput3).relu()
         )
 
-        featoutput1 = self.upsampling_8x_bilinear(self.conv5_m(featoutput1))
-        featoutput2 = self.upsampling_4x_bilinear(self.conv6_m(featoutput2))
-        featoutput3 = self.upsampling_2x_bilinear(self.conv7_m(featoutput3))
+        # featoutput1 = self.upsampling_8x_bilinear(self.conv5_m(featoutput1))
+        # featoutput2 = self.upsampling_4x_bilinear(self.conv6_m(featoutput2))
+        # featoutput3 = self.upsampling_2x_bilinear(self.conv7_m(featoutput3))
         featoutput4 = self.conv8_m(featoutput4)
 
-        sum_output = featoutput1 + featoutput2 + featoutput3 + featoutput4
-        return self.upsampling_2x_bilinear(sum_output)
+        # sum_output = featoutput1 + featoutput2 + featoutput3 + featoutput4
+        return featoutput4
 
 
 class PositionalEncoding(nn.Module):
@@ -589,7 +700,11 @@ class MultiNetWithAttention(nn.Module):
         for param in self.backbone.parameters():
             param.requires_grad = False
 
-        self.attention = SelfAttentionBlock(128 * 128 * 4, 256)
+        self.attention = SelfAttentionBlock(
+            128 * 128,
+            256,
+            num_of_heads=4,
+        )
         self.conv1 = nn.Conv2d(
             in_channels=backbone_dimensions[1],
             out_channels=256,
@@ -609,15 +724,45 @@ class MultiNetWithAttention(nn.Module):
         self.classifier_conv = nn.Conv2d(
             in_channels=256,
             out_channels=256,
-            groups=256,
-            kernel_size=1,
+            kernel_size=3,
+            padding="same",
         )
 
         self.final_classifier_conv = nn.Conv2d(
             in_channels=256,
             out_channels=numberClass,
-            kernel_size=1,
+            kernel_size=3,
+            padding="same",
         )
+
+        self.conv5 = nn.Conv2d(
+            in_channels=backbone_dimensions[-1],
+            out_channels=256,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv4 = nn.Conv2d(
+            in_channels=backbone_dimensions[-2],
+            out_channels=256,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv3 = nn.Conv2d(
+            in_channels=backbone_dimensions[-3],
+            out_channels=256,
+            kernel_size=3,
+            padding=1,
+        )
+        self.conv2 = nn.Conv2d(
+            in_channels=backbone_dimensions[-4],
+            out_channels=256,
+            kernel_size=3,
+            padding=1,
+        )
+
+    def resize_factor(self, x: torch.Tensor, factor: int = 1) -> torch.Tensor:
+        h, w = x.shape[2], x.shape[3]
+        return resize(x, [h * factor, w * factor])
 
     def forward(self, x):
         backbone_output = self.backbone(x)
@@ -628,51 +773,64 @@ class MultiNetWithAttention(nn.Module):
             backbone_output["feat5"],
         )
 
-        feat3_resized_128 = resize(feat3, [128, 128])
-        feat4_resized_128 = resize(feat4, [128, 128])
-        feat5_resized_128 = resize(feat5, [128, 128])
-        feat3_transformed = self.conv1(feat3_resized_128)
-        feat4_transformed = self.conv2(feat4_resized_128)
-        feat5_transformed = self.conv3(feat5_resized_128)
+        # featoutput1 = self.resize_factor(self.conv5(feat5).relu(), 2)
+        # print(featoutput1.shape)
+        # print(feat4.shape)
+        # featoutput2 = self.resize_factor(self.conv4(feat4 + featoutput1).relu(), 2)
+        # featoutput3 = self.resize_factor(self.conv3(feat3 + featoutput2).relu(), 2)
+        # featoutput4 = self.resize_factor(self.conv2(feat2 + featoutput3).relu(), 2)
 
-        (
-            batch_size,
-            channel,
-            height,
-            width,
-        ) = feat2.size()
+        # print(featoutput1.shape)
+        # print(featoutput2.shape)
+        # print(featoutput3.shape)
+        # print(featoutput4.shape)
 
-        feat2 = feat2.permute([0, 2, 3, 1])
-        feat3_transformed = feat3_transformed.permute([0, 2, 3, 1])
-        feat4_transformed = feat4_transformed.permute([0, 2, 3, 1])
-        feat5_transformed = feat5_transformed.permute([0, 2, 3, 1])
+        # feat3_resized_128 = resize(feat3, [128, 128])
+        # feat4_resized_128 = resize(feat4, [128, 128])
+        # feat5_resized_128 = resize(feat5, [128, 128])
+        # feat3_transformed = self.conv1(feat3_resized_128)
+        # feat4_transformed = self.conv2(feat4_resized_128)
+        # feat5_transformed = self.conv3(feat5_resized_128)
 
-        # Concantenated only the token dimension
-        # [B, HxW * 4, E]
-        concatenated = torch.cat(
-            [
-                feat2.view([batch_size, height * width, channel]),
-                feat3_transformed.view([batch_size, height * width, channel]),
-                feat4_transformed.view([batch_size, height * width, channel]),
-                feat5_transformed.view([batch_size, height * width, channel]),
-            ],
-            dim=1,
-        )
-        self_attended = self.attention(concatenated)
-        # Get only the first [256, 128, 128] from the attended self
-        self_attended = (
-            self_attended[:, 0 : (128 * 128), :]
-            .permute([0, 2, 1])
-            .view([batch_size, 256, 128, 128])
-        )
-        classified = self.classifier_conv(self_attended).relu()
-        classified = self.final_classifier_conv(classified).relu()
-        return resize(classified, [512, 512])
+        # (
+        #     batch_size,
+        #     channel,
+        #     height,
+        #     width,
+        # ) = feat2.size()
+
+        # feat2 = feat2.permute([0, 2, 3, 1])
+        # feat3_transformed = feat3_transformed.permute([0, 2, 3, 1])
+        # feat4_transformed = feat4_transformed.permute([0, 2, 3, 1])
+        # feat5_transformed = feat5_transformed.permute([0, 2, 3, 1])
+
+        # # Concantenated only the token dimension
+        # # [B, HxW * 4, E]
+        # concatenated = torch.cat(
+        #     [
+        #         # feat2.view([batch_size, height * width, channel]),
+        #         # feat3_transformed.view([batch_size, height * width, channel]),
+        #         # feat4_transformed.view([batch_size, height * width, channel]),
+        #         feat5_transformed.view([batch_size, height * width, channel]),
+        #     ],
+        #     dim=1,
+        # )
+        # self_attended = self.attention(concatenated)
+        # # Get only the first [256, 128, 128] from the attended self
+        # self_attended = (
+        #     self_attended[:, 0 : (128 * 128), :]
+        #     .permute([0, 2, 1])
+        #     .view([batch_size, 256, 128, 128])
+        # )
+        # classified = self.classifier_conv(self_attended).relu()
+        # classified = self.final_classifier_conv(classified).relu()
+        # # return resize(classified, [512, 512])
+        # return classified
 
 
 # Modify UNET to follow FPN style
 if __name__ == "__main__":
-    model = MultiNetWithAttention(3, BackboneType.RESNET50)
+    model = FPNNetwork_new(3)
     with torch.no_grad():
         output = model(torch.rand([1, 3, 512, 512]))
         print(output.shape)

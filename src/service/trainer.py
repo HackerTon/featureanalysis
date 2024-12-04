@@ -8,14 +8,14 @@ import torch
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import v2
+from tqdm import tqdm
 
-from src.experiment.container_experiment import ContainerExperiment
+from src.experiment.he_experiment import HeExperiment
 from src.loss import dice_index, total_loss
 from src.service.hyperparamater import Hyperparameter
 from src.service.model_saver_service import ModelSaverService
-from ..utils.utils import generate_visualization
 
-from tqdm import tqdm
+from ..utils.utils import generate_visualization
 
 
 class Trainer:
@@ -48,7 +48,7 @@ class Trainer:
         self.hyperparameter = hyperparameter
 
     def run_trainer(self, device: str):
-        experiment = ContainerExperiment(
+        experiment = HeExperiment(
             hyperparameter=self.hyperparameter,
             device=device,
         )

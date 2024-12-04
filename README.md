@@ -22,7 +22,7 @@ Run `python main.py -p {dataset} -b {batch size} -x {experiment number} -m {comp
 - {experiment number}: experiment number (Refer to [trainer.py](src/service/trainer.py))  
 
 Example command 
-`python main.py -p data/textocr -b 32 -x 0 -m mps -l 0.001`
+`python main.py -p data/textocr -b 32 -x 0 -m mps -l 0.001 -e 50 -n experimentname`
 
 ## How to monitor training progress
 Run `tensorboard --logdir data/log`

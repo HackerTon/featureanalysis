@@ -11,7 +11,9 @@ from torchvision.transforms import v2
 from tqdm import tqdm
 
 from src.experiment.he_experiment import HeExperiment
-from src.loss import dice_index, total_loss
+from src.loss import dice_index
+from src.experiment.he_experiment import overall_loss
+from src.loss import total_loss
 from src.service.hyperparamater import Hyperparameter
 from src.service.model_saver_service import ModelSaverService
 
@@ -67,7 +69,7 @@ class Trainer:
             dataloader_test=test_dataloader,
             optimizer=optimizer,
             scheduler=scheduler,
-            loss_fn=total_loss,
+            loss_fn=overall_loss,
             preprocess=preprocessor,
             device=device,
         )
@@ -152,6 +154,7 @@ class Trainer:
         running_loss = 0.0
         running_iou = 0.0
 
+        lambda_t = torch.tensor((epoch / 100) * 1)
         scaler = torch.cuda.amp.grad_scaler.GradScaler()
         for index, data in tqdm(
             enumerate(dataloader),
@@ -166,8 +169,13 @@ class Trainer:
                 inputs, labels = preprocess(inputs, labels)
 
                 outputs = model(inputs)
-                loss = loss_fn(outputs, labels)
-                iou_score = dice_index(outputs.sigmoid(), labels)
+                loss = loss_fn(outputs, labels, lambda_t)
+                # iou_score = dice_index(outputs.sigmoid(), labels)
+
+                alpha = outputs.relu() + 1
+                diriclet_strength = alpha.sum(dim=1, keepdim=True)
+                prediction = alpha / diriclet_strength
+                iou_score = dice_index(prediction, labels)
 
             scaler.scale(loss).backward()
             scaler.step(optimizer=optimizer)
@@ -207,6 +215,8 @@ class Trainer:
     ):
         sum_loss = 0.0
         sum_iou = 0.0
+        lambda_t = torch.tensor((epoch / 100) * 1)
+
 
         with torch.no_grad():
             with torch.autocast(device_type=device, dtype=dtype):
@@ -219,8 +229,12 @@ class Trainer:
                     inputs, labels = preprocess(inputs, labels)
 
                     outputs = model(inputs)
-                    loss = loss_fn(outputs, labels)
-                    iou_score = dice_index(outputs.sigmoid(), labels)
+                    loss = loss_fn(outputs, labels, lambda_t)
+                    alpha = outputs.relu() + 1
+                    diriclet_strength = alpha.sum(dim=1, keepdim=True)
+                    prediction = alpha / diriclet_strength
+                    iou_score = dice_index(prediction, labels)
+                    # iou_score = dice_index(outputs.sigmoid(), labels)
 
                     sum_loss += loss.item()
                     sum_iou += iou_score.item()

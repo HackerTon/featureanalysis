@@ -46,6 +46,43 @@ class HeExperiment(ExperimentBase):
         # )
 
 
+def cross_entropy_dirichlet(prediction: torch.Tensor, target: torch.Tensor):
+    alpha = prediction + 1
+    diriclet_strength = alpha.sum(dim=1, keepdim=True)
+    return (target * (torch.digamma(diriclet_strength) - torch.digamma(alpha))).sum(1)
+
+
+def KL_divergence_dirichlet(prediction: torch.Tensor, target: torch.Tensor):
+    alpha = prediction + 1
+    n_class = torch.tensor(prediction.size(1))
+    approx_alpha = target + (1 - target) * alpha
+
+    first_term = torch.lgamma(approx_alpha.sum(dim=1))
+    first_term -= torch.lgamma(n_class) + torch.lgamma(approx_alpha).sum(dim=1)
+    second_term = (
+        (approx_alpha - 1)
+        * (
+            torch.digamma(approx_alpha)
+            - torch.digamma(approx_alpha.sum(dim=1, keepdim=True))
+        )
+    ).sum(dim=1)
+    return first_term + second_term
+
+
+def overall_loss(
+    prediction: torch.Tensor,
+    target: torch.Tensor,
+    lambda_t: torch.Tensor,
+):
+    prediction = prediction.relu()
+    loss = cross_entropy_dirichlet(prediction, target)
+    loss += lambda_t * KL_divergence_dirichlet(
+        prediction,
+        target,
+    )
+    return loss.mean()
+
+
 random_generator = torch.Generator().manual_seed(1234)
 
 

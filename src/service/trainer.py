@@ -1,59 +1,26 @@
 import math
 import time
-from datetime import datetime
-from pathlib import Path
-from typing import Optional, Union
+from typing import Optional
 
 import torch
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.tensorboard.writer import SummaryWriter
 from torchvision.transforms import v2
 from tqdm import tqdm
 
 from src.experiment.he_experiment import HeExperiment
 from src.loss import dice_index
 from src.experiment.he_experiment import overall_loss
-from src.loss import total_loss
-from src.service.hyperparamater import Hyperparameter
-from src.service.model_saver_service import ModelSaverService
-
-from ..utils.utils import generate_visualization
+from src.service.base_trainer import BaseTrainer
+from src.service.parameter import Parameter
 
 
-class Trainer:
-    def __init__(
-        self,
-        name: str,
-        hyperparameter: Hyperparameter,
-        train_report_rate: float = 0.001,
-    ):
-        """
-        train_report_rate: float = [0.0, 1.0]
-        """
+class Trainer(BaseTrainer):
+    def __init__(self, parameter: Parameter):
+        super().__init__(parameter)
+        torch.manual_seed(99140599)
 
-        torch.manual_seed(123456)
-
-        timestamp = datetime.now().strftime(r"%Y%m%d_%H%M%S")
-        directory_name = "data/model/{}_{}".format(
-            timestamp,
-            name.replace(" ", "_"),
-        )
-
-        self.writer_train = SummaryWriter(f"{directory_name}/train")
-        self.writer_test = SummaryWriter(f"{directory_name}/test")
-        self.model_saver = ModelSaverService(
-            path=Path(f"{directory_name}"),
-            topk=2,
-            name=name,
-        )
-        self.train_report_rate = train_report_rate
-        self.hyperparameter = hyperparameter
-
-    def run_trainer(self, device: str):
-        experiment = HeExperiment(
-            hyperparameter=self.hyperparameter,
-            device=device,
-        )
+    def run_trainer(self):
+        experiment = HeExperiment(parameter=self.parameter)
 
         train_dataloader = experiment["train_dataloader"]
         test_dataloader = experiment["test_dataloader"]
@@ -63,7 +30,7 @@ class Trainer:
         optimizer = experiment["optimizer"]
 
         self.train(
-            epochs=self.hyperparameter.epoch,
+            epochs=self.parameter.epoch,
             model=model,
             dataloader_train=train_dataloader,
             dataloader_test=test_dataloader,
@@ -71,7 +38,7 @@ class Trainer:
             scheduler=scheduler,
             loss_fn=overall_loss,
             preprocess=preprocessor,
-            device=device,
+            device=self.parameter.device,
         )
 
     def train(
@@ -125,18 +92,7 @@ class Trainer:
                     train_dataset_length=len(dataloader_train),
                     dtype=dtype,
                 )
-                # self._visualize_one_epoch(
-                #     epoch=epoch,
-                #     model=model,
-                #     dataloader=dataloader_test,
-                #     preprocess=preprocess,
-                #     train_dataset_length=len(dataloader_train),
-                #     device=device,
-                # )
             self._save(model=model, epoch=epoch)
-
-    def _save(self, model: torch.nn.Module, epoch: int):
-        self.model_saver.save_without_shape(model, epoch)
 
     def _train_one_epoch(
         self,
@@ -150,7 +106,9 @@ class Trainer:
         dtype,
         scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
     ):
-        rate_to_print = max(math.floor(len(dataloader) * self.train_report_rate), 1)
+        rate_to_print = max(
+            math.floor(len(dataloader) * self.parameter.train_report_rate), 1
+        )
         running_loss = 0.0
         running_iou = 0.0
 
@@ -217,7 +175,6 @@ class Trainer:
         sum_iou = 0.0
         lambda_t = torch.tensor((epoch / 100) * 1)
 
-
         with torch.no_grad():
             with torch.autocast(device_type=device, dtype=dtype):
                 for data in dataloader:
@@ -245,81 +202,65 @@ class Trainer:
         self.writer_test.add_scalar("loss", avg_loss, iteration)
         self.writer_test.add_scalar("iou_score", avg_iou, iteration)
 
-    def _visualize_one_epoch(
-        self,
-        epoch: int,
-        model: torch.nn.Module,
-        dataloader: DataLoader,
-        device: Union[torch.device, str],
-        preprocess: v2.Compose,
-        train_dataset_length: int,
-    ):
-        with torch.no_grad():
-            for data in dataloader:
-                inputs: torch.Tensor
-                labels: torch.Tensor
-                inputs, labels = data
+    # def _visualize_one_epoch(
+    #     self,
+    #     epoch: int,
+    #     model: torch.nn.Module,
+    #     dataloader: DataLoader,
+    #     device: Union[torch.device, str],
+    #     preprocess: v2.Compose,
+    #     train_dataset_length: int,
+    # ):
+    #     with torch.no_grad():
+    #         for data in dataloader:
+    #             inputs: torch.Tensor
+    #             labels: torch.Tensor
+    #             inputs, labels = data
 
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+    #             inputs = inputs.to(device)
+    #             labels = labels.to(device)
 
-                original_image = inputs
-                inputs, labels = preprocess(inputs, labels)
+    #             original_image = inputs
+    #             inputs, labels = preprocess(inputs, labels)
 
-                outputs = model(inputs)
-                # colors = [
-                #     (0, 0, 128),
-                #     (128, 64, 128),
-                #     (0, 128, 0),
-                #     (0, 128, 128),
-                #     (128, 0, 64),
-                #     (192, 0, 192),
-                #     (128, 0, 0),
-                # ]
+    #             outputs = model(inputs)
+    #             # colors = [
+    #             #     (0, 0, 128),
+    #             #     (128, 64, 128),
+    #             #     (0, 128, 0),
+    #             #     (0, 128, 128),
+    #             #     (128, 0, 64),
+    #             #     (192, 0, 192),
+    #             #     (128, 0, 0),
+    #             # ]
 
-                visualization_image = generate_visualization(
-                    original_image=original_image,
-                    prediction=outputs,
-                    target=labels,
-                )
+    #             visualization_image = generate_visualization(
+    #                 original_image=original_image,
+    #                 prediction=outputs,
+    #                 target=labels,
+    #             )
 
-                # visualization_image = original_image[0]
-                # for i in range(outputs.size(1) - 1):
-                #     # Visualization for label
-                #     visualization_image = draw_segmentation_masks(
-                #         visualization_image,
-                #         labels[0, i + 1] > 0.5,
-                #         colors=colors[i],
-                #         alpha=0.6,
-                #     )
-                #     # Visualization for prediction
-                #     visualization_image = draw_segmentation_masks(
-                #         visualization_image,
-                #         outputs[0, i + 1].sigmoid() > 0.5,
-                #         colors=colors[i],
-                #         alpha=0.3,
-                #     )
+    #             # visualization_image = original_image[0]
+    #             # for i in range(outputs.size(1) - 1):
+    #             #     # Visualization for label
+    #             #     visualization_image = draw_segmentation_masks(
+    #             #         visualization_image,
+    #             #         labels[0, i + 1] > 0.5,
+    #             #         colors=colors[i],
+    #             #         alpha=0.6,
+    #             #     )
+    #             #     # Visualization for prediction
+    #             #     visualization_image = draw_segmentation_masks(
+    #             #         visualization_image,
+    #             #         outputs[0, i + 1].sigmoid() > 0.5,
+    #             #         colors=colors[i],
+    #             #         alpha=0.3,
+    #             #     )
 
-                iteration = (epoch + 1) * train_dataset_length
-                self.writer_test.add_image(
-                    tag="images",
-                    img_tensor=visualization_image,
-                    global_step=iteration,
-                )
-                break
-
-
-# train, test = create_cardiac_dataloader_traintest(
-#     path="/Volumes/storage/",
-#     path2="/Volumes/storage/",
-#     batch_size=1,
-# )
-
-# from torchvision.io import write_jpeg
-
-# for idx, (x, y) in enumerate(train.dataset):
-#     print(y.shape)
-#     break
-
-# write_jpeg(x, "x.jpg")
-# write_jpeg(y, "y.jpg")
+    #             iteration = (epoch + 1) * train_dataset_length
+    #             self.writer_test.add_image(
+    #                 tag="images",
+    #                 img_tensor=visualization_image,
+    #                 global_step=iteration,
+    #             )
+    #             break

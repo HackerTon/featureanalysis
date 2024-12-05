@@ -16,11 +16,11 @@ from src.model.model import (
     FPNNetwork_new,
     FPNNetwork
 )
-from src.service.hyperparamater import Hyperparameter
+from src.service.parameter import Parameter
 
 
 class ContainerExperiment(ExperimentBase):
-    def __init__(self, hyperparameter: Hyperparameter, device: str) -> None:
+    def __init__(self, hyperparameter: Parameter, device: str) -> None:
         super().__init__()
 
         self.train_dataloader, self.test_dataloader = (

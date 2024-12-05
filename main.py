@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from src.service.hyperparamater import Hyperparameter
+from src.service.parameter import Parameter
 from src.service.trainer import Trainer
 
 
@@ -12,24 +12,25 @@ def run(
     batch_size: int,
     path: str,
     learning_rate: float,
+    step: int,
 ):
     if not Path(path).exists():
         print(f"Dataset not found in '{path}'")
         return
 
-    hyperparameter = Hyperparameter(
-        epoch=epoch,
-        learning_rate=learning_rate,
-        batch_size_test=16,
-        batch_size_train=batch_size,
-        data_path=path,
-    )
-    trainer = Trainer(
-        train_report_rate=0.1,
-        name=name,
-        hyperparameter=hyperparameter,
-    )
-    trainer.run_trainer(device=device)
+    parameter = Parameter()
+    parameter.epoch = epoch
+    parameter.name = name
+    parameter.batch_size_test = batch_size
+    parameter.batch_size_train = batch_size
+    parameter.learning_rate = learning_rate
+    parameter.data_path = path
+    parameter.step = step
+    parameter.train_report_rate = 0.1
+    parameter.device = device
+
+    trainer = Trainer(parameter)
+    trainer.run_trainer()
 
 
 if __name__ == "__main__":
@@ -46,6 +47,13 @@ if __name__ == "__main__":
         type=str,
         help="Name of the experiment",
     )
+    parser.add_argument(
+        "-s",
+        "--step",
+        type=int,
+        default=0,
+        help="Step in your experiment",
+    )
 
     parsed_data = parser.parse_args()
     run(
@@ -55,4 +63,5 @@ if __name__ == "__main__":
         batch_size=parsed_data.batchsize,
         path=parsed_data.path,
         learning_rate=parsed_data.learning_rate,
+        step=parsed_data.step,
     )

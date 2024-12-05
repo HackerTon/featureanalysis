@@ -10,16 +10,16 @@ from src.dataloader.dataset.he_dataset import HeDataset
 from src.dataloader.transform import ImagenetNormalize, ToNormalized
 from src.experiment.experimentbase import ExperimentBase
 from src.model.model import UNETNetwork
-from src.service.hyperparamater import Hyperparameter
+from src.service.parameter import Parameter
 
 
 class HeExperiment(ExperimentBase):
-    def __init__(self, hyperparameter: Hyperparameter, device: str) -> None:
+    def __init__(self, parameter: Parameter) -> None:
         super().__init__()
 
         self.train_dataloader, self.test_dataloader = create_dataloader(
-            path=hyperparameter.data_path,
-            batch_size=hyperparameter.batch_size_train,
+            path=parameter.data_path,
+            batch_size=parameter.batch_size_train,
         )
 
         self.model = UNETNetwork(numberClass=3)
@@ -31,12 +31,12 @@ class HeExperiment(ExperimentBase):
         )
 
         # Move weights to specified device
-        self.model = self.model.to(device)
+        self.model = self.model.to(parameter.device)
 
         self.optimizer = torch.optim.AdamW(
             params=self.model.parameters(),
-            lr=hyperparameter.learning_rate,
-            fused=True if device == "cuda" else False,
+            lr=parameter.learning_rate,
+            fused=True if parameter.device == "cuda" else False,
         )
         # self.scheduler = torch.optim.lr_scheduler.OneCycleLR(
         #     optimizer=self.optimizer,

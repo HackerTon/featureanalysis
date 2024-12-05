@@ -17,12 +17,12 @@ from src.model.model import (
     FPNNetwork,
     MultiNetWithAttention,
 )
-from src.service.hyperparamater import Hyperparameter
+from src.service.parameter import Parameter
 
 
 class CardiacExperiment(ExperimentBase):
     def __init__(
-        self, hyperparameter: Hyperparameter, device: str, model="multinet"
+        self, hyperparameter: Parameter, device: str, model="multinet"
     ) -> None:
         super().__init__()
 

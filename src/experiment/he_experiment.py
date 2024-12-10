@@ -140,12 +140,12 @@ def create_dataloader(
         train_dataset,
         batch_size=batch_size,
         shuffle=True,
-        collate_fn=train_collate,
+        # collate_fn=train_collate,
         num_workers=num_workers,
     )
     test_dataloader = DataLoader(
         test_dataset,
-        collate_fn=test_collate,
+        # collate_fn=test_collate,
         batch_size=8,
         num_workers=num_workers,
     )

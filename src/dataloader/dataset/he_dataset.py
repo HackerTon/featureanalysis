@@ -11,9 +11,6 @@ class HeDataset(Dataset):
     def __init__(self, directory_path: str):
         self.directory = Path(directory_path)
         self.cache_directory = Path("data/he_dataset")
-        self.labels = []
-        self.images = []
-
         self._initialize_dataset()
 
     def _initialize_dataset(self):
@@ -92,14 +89,15 @@ class HeDataset(Dataset):
 
 if __name__ == "__main__":
     from torchvision.io import write_jpeg
+    from torch.utils.data import DataLoader
 
     dataset = HeDataset("/mnt/storage/Dataset110_Tiger")
     i = 0
-    for image, mask in dataset:
-        write_jpeg(image, "image.jpg")
-        write_jpeg(mask[0].unsqueeze(0), "mask.jpg")
-
-        if i == 5:
-            break
+    for image, mask in DataLoader(dataset, shuffle=False):
+        # write_jpeg(image, "image.jpg")
+        # write_jpeg(mask[0].unsqueeze(0), "mask.jpg")
+        # if i == 5:
+        #     break
 
         i += 1
+    print(i)

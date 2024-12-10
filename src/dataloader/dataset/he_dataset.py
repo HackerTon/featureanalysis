@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
     dataset = HeDataset("/mnt/storage/Dataset110_Tiger")
     i = 0
-    for image, mask in DataLoader(dataset, shuffle=False):
+    for image, mask in DataLoader(dataset, shuffle=False, num_workers=4):
         # write_jpeg(image, "image.jpg")
         # write_jpeg(mask[0].unsqueeze(0), "mask.jpg")
         # if i == 5:

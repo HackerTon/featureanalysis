@@ -29,3 +29,25 @@ Run `tensorboard --logdir data/log`
 
 ## How to run benchmark
 Run `python -m src.benchmark`
+
+
+## semi supervised
+* Generate pseudo-label for baseline
+```
+python generate_pseudolabel.py --model data/model/20241211_013306_tiger_baseline_fix_lambda_0.02max_500_bs16/499_tiger_baseline_fix_lambda_0.02max_500_bs16_model.pt \
+--dataset_dir /mnt/storage/Dataset130_ukmtils \
+--pseudo_dir data/ukmtils_pseudo_b \
+--mode baseline
+```
+* Generate pseudo-label for proposed model
+```
+python generate_pseudolabel.py --model data/model/20241211_004039_tiger_proposed_fix_lambda_0.02max_500_bs16/361_tiger_proposed_fix_lambda_0.02max_500_bs16_model.pt \
+--dataset_dir /mnt/storage/Dataset130_ukmtils \
+--pseudo_dir data/ukmtils_pseudo \
+--mode dirichlet
+```
+
+* Train baseline on pseudo-label
+```
+python main.py -p data/ukmtils_pseudo_b  -b 16 -m cuda --learning_rate 0.0001 --name 'tiger baseline 500 bs16 pseudo' -e 500
+```

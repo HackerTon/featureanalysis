@@ -6,7 +6,8 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision.transforms import v2
 from torchvision.transforms.v2.functional import crop, five_crop
 
-from src.dataloader.dataset.he_dataset import HeDataset
+# from src.dataloader.dataset.he_dataset import HeDataset
+from src.dataloader.dataset.he_dataset_direct import HeDataset
 from src.dataloader.transform import ImagenetNormalize, ToNormalized
 from src.experiment.experimentbase import ExperimentBase
 from src.model.model import UNETNetwork
@@ -123,17 +124,14 @@ def test_collate(data):
 def create_dataloader(
     path: str,
     batch_size: int,
-    seed: int = 12345678,
     num_workers: int = 4,
 ) -> Tuple[DataLoader, DataLoader]:
     global_dataset = HeDataset(directory_path=path)
     SPLIT_PERCENTAGE = 0.8
 
-    generator = torch.Generator().manual_seed(seed)
     train_dataset, test_dataset = random_split(
         global_dataset,
         [SPLIT_PERCENTAGE, 1 - SPLIT_PERCENTAGE],
-        generator,
     )
 
     train_dataloader = DataLoader(

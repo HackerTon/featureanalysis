@@ -4,13 +4,14 @@ import torch
 from itertools import chain
 from torch.utils.data import Dataset
 from torchvision.io.image import ImageReadMode, read_image, write_png
+from shutil import rmtree
 from torchvision.transforms.functional import resize, InterpolationMode
 
 
 class HeDataset(Dataset):
-    def __init__(self, directory_path: str):
+    def __init__(self, directory_path: str, cache_directory="data/he_dataset"):
         self.directory = Path(directory_path)
-        self.cache_directory = Path("data/he_dataset")
+        self.cache_directory = Path(cache_directory)
         self._initialize_dataset()
 
     def _initialize_dataset(self):
@@ -28,6 +29,8 @@ class HeDataset(Dataset):
                 self.dataset_length = total_num_samples
                 return
 
+        self.cache_directory.mkdir(exist_ok=True)
+        rmtree(str(self.cache_directory))
         self.cache_directory.mkdir(exist_ok=True)
         self._cache_dataset(chain(train_images, test_images))
         self.dataset_length = total_num_samples
